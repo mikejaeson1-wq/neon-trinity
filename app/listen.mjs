@@ -1,0 +1,10 @@
+export function listeningPosition(room,roundTrip=0){const elapsed=room.playing?Math.max(0,(room.serverTime-room.updatedAt)/1000)+roundTrip/2000:0;return Math.max(0,Math.min(room.track?.duration||Infinity,(room.position||0)+elapsed));}
+export class ListeningSession{
+  constructor({team,getPlayer,onRemote,onChange=()=>{},onError=()=>{}}){Object.assign(this,{team,getPlayer,onRemote,onChange,onError});this.hostRoom=null;this.followRoom=null;this.timer=null;this.busy=false;this.chain=Promise.resolve();}
+  async host(){if(!this.team.active)throw new Error('Melde dich zuerst mit Discord beim Team an.');const player=this.getPlayer();if(!player.trackId)throw new Error('Starte zuerst einen Song aus der gemeinsamen Mediathek.');await this.leave();this.hostRoom=await this.team.api('/api/listen','POST',player);this.timer=setInterval(()=>this.updateHost().catch(this.onError),10000);this.timer.unref?.();this.onChange();return this.hostRoom;}
+  async updateHost(){if(!this.hostRoom)return;this.chain=this.chain.catch(()=>{}).then(async()=>{if(this.hostRoom)await this.team.api('/api/listen/'+this.hostRoom.id,'PATCH',this.getPlayer());});return this.chain;}
+  async join(id){if(!/^[a-f0-9]{64}$/.test(id))throw new Error('Ungültiger Hörsession-Link.');await this.leave();this.followRoom={id,host:'',track:null};await this.poll();this.timer=setInterval(()=>this.poll().catch(this.onError),2000);this.timer.unref?.();this.onChange();}
+  async poll(){if(!this.followRoom||this.busy)return;this.busy=true;try{const start=Date.now(),room=await this.team.api('/api/listen/'+this.followRoom.id);this.followRoom=room;await this.onRemote(room,listeningPosition(room,Date.now()-start));this.onChange();}catch(e){if(e.status===410){clearInterval(this.timer);this.followRoom=null;this.onChange();}throw e;}finally{this.busy=false;}}
+  async leave(){clearInterval(this.timer);this.timer=null;if(this.hostRoom)await this.team.api('/api/listen/'+this.hostRoom.id,'DELETE').catch(()=>{});this.hostRoom=null;this.followRoom=null;this.onChange();}
+  get url(){return this.hostRoom?.url||'';}
+}

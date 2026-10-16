@@ -1,0 +1,57 @@
+{
+  "name": "neon-trinity-studio",
+  "version": "0.3.0",
+  "private": true,
+  "description": "Neon Trinity – Musik, Alben und Live-Setlists für Dex, Nix und Jax",
+  "author": "Neon Trinity",
+  "main": "desktop/main.cjs",
+  "scripts": {
+    "prestart": "node scripts/build-vendor.mjs && node scripts/prepare-source.mjs",
+    "start": "electron .",
+    "test": "node --test tests/*.test.mjs",
+    "build:web": "node scripts/build.mjs",
+    "prebuild:win": "node scripts/build-vendor.mjs && node scripts/prepare-source.mjs",
+    "prebuild:installer": "node scripts/build-vendor.mjs && node scripts/prepare-source.mjs",
+    "build:win": "electron-builder --win portable --x64",
+    "build:installer": "electron-builder --win nsis --x64",
+    "team:setup": "node scripts/setup-supabase.mjs",
+    "build:vendor": "node scripts/build-vendor.mjs"
+  },
+  "devDependencies": {
+    "electron": "44.8.0",
+    "electron-builder": "26.15.3",
+    "fake-indexeddb": "6.2.4",
+    "linkedom": "0.18.12",
+    "esbuild": "0.28.2"
+  },
+  "build": {
+    "appId": "music.neontrinity.studio",
+    "productName": "Neon Trinity Studio",
+    "directories": {
+      "output": "release"
+    },
+    "files": [
+      "app/**/*",
+      "desktop/**/*",
+      "package.json"
+    ],
+    "win": {
+      "target": [
+        "portable"
+      ],
+      "icon": "app/assets/icon.png",
+      "signAndEditExecutable": false
+    },
+    "portable": {
+      "artifactName": "Neon-Trinity-Studio-${version}-Windows.exe"
+    },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true,
+      "createDesktopShortcut": true
+    }
+  },
+  "dependencies": {
+    "@supabase/supabase-js": "2.118.0"
+  }
+}

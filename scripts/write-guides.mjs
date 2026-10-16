@@ -1,0 +1,12 @@
+import {readFile,writeFile,mkdir} from 'node:fs/promises';
+import path from 'node:path';
+import {fileURLToPath} from 'node:url';
+const root=path.resolve(path.dirname(fileURLToPath(import.meta.url)),'..');
+const source=await readFile(path.join(root,'docs/TEAM-START.md'),'utf8');
+const h=s=>s.replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const inline=s=>h(s).replace(/https:\/\/[^\s<]+/g,url=>`<a href="${url}" target="_blank" rel="noopener">${url}</a>`);
+const blocks=source.split(/(```[\s\S]*?```)/g).map(block=>block.startsWith('```')?'<pre><code>'+h(block.replace(/^```[^\n]*\n/,'').replace(/```$/,''))+'</code></pre>':block.split(/\n\s*\n/).map(p=>p.startsWith('# ')?'<h1>'+inline(p.slice(2))+'</h1>':p.startsWith('## ')?'<h2>'+inline(p.slice(3))+'</h2>':'<p>'+inline(p).replace(/\n/g,' ')+'</p>').join('\n')).join('\n');
+const logo=(await readFile(path.join(root,'app/assets/neon-trinity.png'))).toString('base64');
+const html=`<!doctype html><html lang="de"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'unsafe-inline'; img-src data:; base-uri 'none'"><title>Neon Trinity · Supabase einrichten</title><style>:root{color-scheme:dark;font-family:Segoe UI,Arial,sans-serif;background:#100919;color:#f5edff}*{box-sizing:border-box}body{max-width:940px;margin:35px auto;padding:25px}img{width:160px;display:block;margin:0 auto 35px}h1{color:#2eff80;font-size:36px}h2{color:#e9b4ff;font-size:24px;margin-top:40px;border-bottom:1px solid #593168;padding-bottom:12px}p{line-height:1.8;color:#d8c9e5;font-size:15px}a{color:#71f8ba;overflow-wrap:anywhere}pre{background:#1c1426;border:1px solid #513460;border-radius:10px;padding:20px;overflow:auto;font-size:13px;line-height:1.65;white-space:pre}code{font-family:Consolas,monospace}@media(max-width:600px){body{padding:12px}h1{font-size:28px}pre{padding:12px}}</style><body><img src="data:image/png;base64,${logo}" alt="Neon Trinity">${blocks}</body></html>`;
+await mkdir(path.join(root,'downloads'),{recursive:true});
+for(const file of ['app/team-help.html','downloads/TEAM-START.html','downloads/SUPABASE-START.html','SUPABASE-START.html'])await writeFile(path.join(root,file),html);
