@@ -1,0 +1,25 @@
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import {readFile} from 'node:fs/promises';
+import {parseHTML} from 'linkedom';
+import 'fake-indexeddb/auto';
+import {newState} from '../app/core.mjs';
+import {snapshot} from '../app/shared.mjs';
+import {saveState,putBlob,loadState} from '../app/db.mjs';
+import {TeamClient} from '../app/team.mjs';
+const {window,document}=parseHTML(await readFile(new URL('../app/index.html',import.meta.url),'utf8'));globalThis.window=window;globalThis.document=document;globalThis.BroadcastChannel=undefined;globalThis.location={hash:'#library',protocol:'http:'};window.scrollTo=()=>{};
+Object.defineProperty(globalThis,'navigator',{value:{storage:{estimate:async()=>({usage:0})}},configurable:true});
+const delay=globalThis.setTimeout;globalThis.setTimeout=(fn,n,...args)=>{const t=delay(fn,n,...args);t.unref?.();return t;};
+const audio=document.querySelector('audio');audio.play=async()=>{audio.paused=false;audio.dispatchEvent(new window.Event('play'));};audio.pause=()=>{audio.paused=true;audio.dispatchEvent(new window.Event('pause'));};const dialog=document.querySelector('dialog');dialog.showModal=()=>dialog.open=true;dialog.close=()=>dialog.open=false;
+const dex='11111111-1111-4111-8111-111111111111',nix='22222222-2222-4222-8222-222222222222',pid='A'.repeat(22),commands=[];let playing=false,team,playlistCalls=0;
+window.neonDesktop={hasToken:async()=>false,spotifyCancelLogin:async()=>{},spotifyStatus:async owner=>({clientId:'a'.repeat(32),connected:owner===dex,profile:owner===dex?{name:'Dex Spotify'}:null}),spotifyPlaylists:async(offset,owner)=>{assert.equal(owner,dex);playlistCalls++;return {items:[{id:pid,name:'<script>My Spotify Secret</script>',owner:'Dex',total:1,url:'https://open.spotify.com/playlist/'+pid}],next:null};},spotifyDevices:async()=>[{id:'pc',name:'My PC',active:true,volume:70}],spotifyItems:async()=>({items:[{index:0,name:'A Spotify Song',artist:'Artist',duration:180000,playable:true}],next:null}),spotifyCommand:async(input,owner)=>{commands.push({input,owner});if(input.action==='playlist'||input.action==='resume')playing=true;else if(input.action==='pause')playing=false;},spotifyPlayback:async()=>playing?{playing:true,title:'A Spotify Song',artist:'Artist',position:10000,duration:180000,url:'https://open.spotify.com/track/'+'B'.repeat(22),device:{name:'My PC'},disallows:{}}:null};
+const state=newState();state.appearance.autoListen=false;state.tracks=[{id:'band-song',blobId:'band-mp3',title:'Band Song',artist:'Neon Trinity',duration:180}];await saveState(state);await putBlob('band-mp3',new Blob(['MP3'],{type:'audio/mpeg'}));
+TeamClient.prototype.detect=async function(){team=this;this.user={id:dex,alias:'Dex',allowed:true};this.baseline=snapshot(state);return true;};await import('../app/app.mjs');
+const click=selector=>{const el=document.querySelector(selector);assert.ok(el,selector);el.dispatchEvent(new window.Event('click',{bubbles:true}));};
+const navigate=route=>{location.hash='#'+route;window.dispatchEvent(new window.Event('hashchange'));};
+const until=async fn=>{for(let i=0;i<100;i++){if(fn())return;await new Promise(r=>delay(r,5));}throw new Error('Spotify UI timed out');};
+test('Spotify-Playlists sind bedienbar, Metadaten sicher und bleiben außerhalb der Banddaten',async()=>{
+ click('[data-action="play-track"]');await until(()=>audio.paused===false);navigate('spotify');await until(()=>document.querySelector('[data-action="spotify-play"]'));assert.equal(document.querySelector('main script'),null);assert.match(document.querySelector('main').textContent,/My Spotify Secret/);assert.equal(playlistCalls,1);
+ click('[data-action="spotify-open"]');await until(()=>document.querySelector('.spotify-track-list'));assert.match(document.querySelector('.spotify-track-list').textContent,/A Spotify Song/);click('[data-action="spotify-play"][data-index="0"]');await until(()=>commands.length===1);assert.equal(audio.paused,true);assert.equal(commands[0].owner,dex);assert.deepEqual(commands[0].input,{action:'playlist',playlistId:pid,index:0,deviceId:'pc'});await until(()=>document.querySelector('#spotify-seek'));const seek=document.querySelector('#spotify-seek');seek.value='30000';await seek.onchange({target:seek});assert.equal(commands.at(-1).input.value,30000);assert.ok(!JSON.stringify(await loadState()).includes('My Spotify Secret'));
+ team.user={id:nix,alias:'Nix',allowed:true};navigate('spotify');await until(()=>document.querySelector('[data-action="spotify-login"]'));assert.ok(!document.querySelector('main').textContent.includes('My Spotify Secret'));assert.ok(!document.querySelector('main').textContent.includes('Dex Spotify'));assert.equal(playlistCalls,1);
+});

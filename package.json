@@ -57,7 +57,8 @@
       "installerLanguages": [
         "de_DE"
       ],
-      "artifactName": "Neon-Trinity-Studio-Setup.exe"
+      "artifactName": "Neon-Trinity-Studio-Setup.exe",
+      "include": "desktop/installer.nsh"
     },
     "publish": [
       {

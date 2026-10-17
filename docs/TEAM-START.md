@@ -125,6 +125,23 @@ Unter **Einstellungen** stehen neun Studio-Themes und die Hover-Effekte Neon-Leu
 
 Der **Visualizer** analysiert die tatsächlich abgespielte Musik, auch private lokale MP3s. Wähle Spektrum, Spiegel, Orbit oder Wellenform und eines von fünf Farbthemen. Mit den drei Farbwählern gestaltest du dein eigenes Theme; Empfindlichkeit und Leuchten lassen sich anpassen. Vollbild zeigt nur die Visualisierung. Er benötigt keine Mikrofonfreigabe.
 
-## Spotify – kostenlos angefragt
+## Spotify Premium verbinden
 
-Es ist keine Spotify-Kontoanbindung enthalten. Nach den aktuellen Spotify-Regeln benötigt der Inhaber einer neuen Entwickler-App Premium. Vollständige Wiedergabe über das Web Playback SDK setzt ebenfalls Premium voraus. Damit erfüllt eine solche Anbindung die Vorgabe „nur kostenlos“ nicht. Details: https://developer.spotify.com/documentation/web-api/tutorials/february-2026-migration-guide und https://developer.spotify.com/documentation/web-playback-sdk.
+Spotify hat im Studio einen eigenen Bereich. Du kannst deine Spotify-Playlists anzeigen, die Titel eigener und kollaborativer Playlists öffnen und auf einem ausgewählten Spotify-Connect-Gerät abspielen. Wiedergabe, Pause, Titelwechsel, Position und Lautstärke steuerst du im Studio. Der Ton wird vom offiziellen Spotify-Player auf PC, Handy oder einem anderen verfügbaren Gerät ausgegeben. Öffne Spotify dort zunächst und starte einen Song, damit das Gerät gefunden wird.
+
+### Einmalig durch Dex
+
+1. Öffne https://developer.spotify.com/dashboard und lege eine App an. Wähle **Web API**. Der App-Inhaber braucht Spotify Premium; zur Connect-Wiedergabe verwenden alle Beteiligten Premium-Konten.
+2. Website: https://mikejaeson1-wq.github.io/neon-trinity. Datennutzung: https://mikejaeson1-wq.github.io/neon-trinity/privacy.html.
+3. Trage exakt diese Redirect URI ein: `http://127.0.0.1:48732/spotify/callback`. Verwende die IP-Adresse, nicht localhost.
+4. Schalte die Spotify-Konten von Dex, Nix und Jax unter **User Management** frei. Development Mode erlaubt derzeit bis zu fünf Nutzer. Die Freigabe der Discord-Konten ist davon unabhängig.
+5. Kopiere die **Client ID** in Studio → Spotify → Einmalige Spotify-App-Einrichtung. Lasse „Öffentliche App-ID für Nix und Jax hinterlegen“ aktiviert und speichere. Das **Client Secret wird nicht benötigt** und gehört weder ins Studio noch in den Chat.
+6. Wähle **Mit Spotify verbinden**, melde dich im geöffneten Browser an und erlaube den Zugriff. Kehre anschließend zum Studio zurück.
+
+Nix und Jax erhalten die App-ID beim Team-Abgleich automatisch. Sie melden sich im Spotify-Bereich jeweils mit ihrem eigenen Spotify-Konto an. Die Kontoverbindung bleibt je Studio-Konto verschlüsselt auf dem PC. Spotify-Zugriffsschlüssel werden weder in Supabase noch in Backups geschrieben.
+
+Spotify begrenzt den Abruf von Titellisten auf eigene und kollaborative Playlists. Bei anderen Playlists kann die Anwendung nur die von Spotify verfügbaren Metadaten anzeigen; ein Link öffnet die Playlist im offiziellen Player. Lokale Spotify-Dateien und nicht verfügbare Titel werden in der Titelauswahl nicht als abspielbar angeboten.
+
+Das Studio lädt keine Spotify-Audiodateien herunter. Der Audio-Visualizer und die eigene synchrone Discord-Hörsession arbeiten mit euren MP3s. Spotify-Musik läuft über Spotify Connect. Beim Start aus dem Spotify-Bereich pausiert der MP3-Player und eine eigene Hörsession endet, damit nicht beide Musikquellen gleichzeitig spielen.
+
+**Verbindung entfernen** löscht die im Studio gespeicherte Spotify-Sitzung des aktuellen Kontos. Zusätzlich kannst du unter https://www.spotify.com/account/apps/ die App-Berechtigung in Spotify widerrufen. Die Spotify-Entwickler-App und ihre Client-ID müssen einmalig vom App-Inhaber eingerichtet werden; ohne diese ID lässt sich die Anmeldung nicht live abschließen.

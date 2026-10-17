@@ -25,3 +25,5 @@ Linux can build and inspect Windows app files but cannot prove the Windows runti
 Nix und Jax laden den Installer über https://mikejaeson1-wq.github.io/neon-trinity/install.html herunter und melden sich im Studio mit Discord an. Updates werden unter Einstellungen → Studio & Updates angeboten.
 
 Eine neue Versionsnummer in package.json auf main startet den Windows-Release-Workflow. Er testet das Studio, baut den NSIS-Installer, prüft dessen SHA-512-Prüfsumme und veröffentlicht Installer, Blockmap und latest.yml zusammen in einem GitHub Release. Ein bereits veröffentlichtes Release wird nicht verändert.
+
+Spotify Premium is optional: the Windows studio uses PKCE and encrypted per-account credentials to browse playlists and control an official Spotify Connect device. Dex configures the public client ID once under Spotify; no client secret is used. See docs/TEAM-START.md for the registered loopback redirect and account allowlist.

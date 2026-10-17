@@ -6,6 +6,7 @@ const { validRequest, githubRequest } = require('./service.cjs');
 const {DiscordPresence}=require('./discord.cjs');
 const {DesktopCloud}=require('./team.cjs');
 const {roomFromArguments,listeningRoomFromURL}=require('./deep-link.cjs');
+const {DesktopSpotify}=require('./spotify.cjs');
 const {StudioUpdater}=require('./updates.cjs');
 const {autoUpdater}=require('electron-updater');
 protocol.registerSchemesAsPrivileged([{scheme:'ntapp',privileges:{standard:true,secure:true,supportFetchAPI:true,corsEnabled:true,stream:true}}]);
@@ -16,6 +17,7 @@ let window,studioUpdater,pendingRoom=roomFromArguments(process.argv);
 let token='';
 let miniWindow,quitting=false,playerState={paused:true};
 const team=new DesktopCloud({app,safeStorage,shell});
+const spotify=new DesktopSpotify({app,safeStorage,shell});
 const presence=new DiscordPresence(message=>{if(window&&!window.isDestroyed())window.webContents.send('discord-status',message);});
 const tokenPath=()=>path.join(app.getPath('userData'),'github-token.enc');
 function secureStorageAvailable(){return safeStorage.isEncryptionAvailable() && (process.platform!=='linux'||safeStorage.getSelectedStorageBackend()!=='basic_text');}
@@ -24,7 +26,7 @@ function trusted(event){const u=event.senderFrame&&new URL(event.senderFrame.url
 if(primaryInstance)app.whenReady().then(async()=>{
   if(app.isPackaged)app.setAsDefaultProtocolClient('neontrinity');
   token=await readToken();
-  await team.load();
+  await team.load();await spotify.load();
   if(team.config.discordClientId)presence.configure(team.config.discordClientId);
   const appRoot=path.resolve(__dirname,'../app');
   protocol.handle('ntapp',request=>{
@@ -47,9 +49,20 @@ if(primaryInstance)app.whenReady().then(async()=>{
     catch(error){return {ok:false,message:error.message,status:error.status||0};}
   });
   const handle=(name,fn)=>ipcMain.handle(name,async(event,...args)=>{trusted(event);try{return {ok:true,value:await fn(...args)};}catch(error){return {ok:false,message:error.message,status:error.status||0,data:error.data};}});
+  handle('spotify:status',owner=>spotify.status(spotifyOwner(owner)));
+  handle('spotify:configure',(id,owner)=>spotify.configure(spotifyOwner(owner),id));
+  handle('spotify:login',(id,owner)=>spotify.startLogin(spotifyOwner(owner),id));
+  handle('spotify:poll-login',owner=>spotify.pollLogin(spotifyOwner(owner)));
+  handle('spotify:cancel-login',()=>spotify.cancelLogin());
+  handle('spotify:disconnect',owner=>spotify.disconnect(spotifyOwner(owner)));
+  handle('spotify:playlists',(offset,owner)=>spotify.playlists(spotifyOwner(owner),offset));
+  handle('spotify:items',(id,offset,owner)=>spotify.items(spotifyOwner(owner),id,offset));
+  handle('spotify:devices',owner=>spotify.devices(spotifyOwner(owner)));
+  handle('spotify:playback',owner=>spotify.playback(spotifyOwner(owner)));
+  handle('spotify:command',(input,owner)=>spotify.command(spotifyOwner(owner),input));
   handle('cloud:get-item',key=>team.getItem(key));
   handle('cloud:set-item',(key,value)=>team.setItem(key,value));
-  handle('cloud:remove-item',key=>team.removeItem(key));
+  handle('cloud:remove-item',async key=>{await spotify.cancelLogin();return team.removeItem(key);});
   handle('cloud:start-login',()=>team.startLogin());
   handle('cloud:open-login',url=>team.openLogin(url));
   handle('cloud:poll-login',()=>team.pollLogin());
@@ -73,8 +86,8 @@ if(primaryInstance)app.whenReady().then(async()=>{
   app.on('activate',()=>{if(BrowserWindow.getAllWindows().length===0)createWindow();});
 });
 function createWindow(){
-  window=new BrowserWindow({width:1440,height:960,minWidth:720,minHeight:600,title:'Neon Trinity Studio',backgroundColor:'#111116',icon:path.join(__dirname,'../app/assets/icon.png'),webPreferences:{preload:path.join(__dirname,'preload.cjs'),contextIsolation:true,nodeIntegration:false,sandbox:true,webSecurity:true,backgroundThrottling:false}});
-  window.webContents.setWindowOpenHandler(({url})=>{if(url==='ntapp://studio/team-help.html'){const help=new BrowserWindow({width:940,height:850,title:'Neon Trinity · Team einrichten',backgroundColor:'#100919',webPreferences:{contextIsolation:true,nodeIntegration:false,sandbox:true,webSecurity:true}});help.webContents.setWindowOpenHandler(({url})=>{openLink(url);return {action:'deny'};});help.webContents.on('will-navigate',(event,target)=>{event.preventDefault();openLink(target);});help.loadURL(url);}else openLink(url);return {action:'deny'};});
+  window=new BrowserWindow({width:1440,height:960,minWidth:720,minHeight:600,title:'Neon Trinity Studio',backgroundColor:'#111116',icon:path.join(__dirname,'../app/assets/icon.png'),webPreferences:{preload:path.join(__dirname,'preload.cjs'),contextIsolation:true,nodeIntegration:false,sandbox:true,webSecurity:true,backgroundThrottling:false,autoplayPolicy:'no-user-gesture-required'}});
+  window.webContents.setWindowOpenHandler(({url})=>{if(url==='ntapp://studio/team-help.html'||url==='ntapp://studio/privacy.html'){const help=new BrowserWindow({width:940,height:850,title:'Neon Trinity · Team einrichten',backgroundColor:'#100919',webPreferences:{contextIsolation:true,nodeIntegration:false,sandbox:true,webSecurity:true}});help.webContents.setWindowOpenHandler(({url})=>{openLink(url);return {action:'deny'};});help.webContents.on('will-navigate',(event,target)=>{event.preventDefault();openLink(target);});help.loadURL(url);}else openLink(url);return {action:'deny'};});
   window.webContents.on('will-navigate',(e,url)=>{if(!url.startsWith('ntapp://studio/')){e.preventDefault();openLink(url);}});
   window.webContents.session.setPermissionRequestHandler((_contents,_permission,callback)=>callback(false));
   window.webContents.session.on('will-download',(_event,item)=>{if(!item.getURL().startsWith('blob:ntapp://studio/'))item.cancel();});
@@ -89,4 +102,8 @@ app.on('open-url',(event,url)=>{const room=listeningRoomFromURL(url);if(room){ev
 app.on('window-all-closed',()=>{if(process.platform!=='darwin')app.quit();});
 
 function openMini(){if(miniWindow&&!miniWindow.isDestroyed()){miniWindow.show();miniWindow.focus();return;}miniWindow=new BrowserWindow({width:390,height:205,minWidth:360,minHeight:200,resizable:false,frame:false,alwaysOnTop:true,skipTaskbar:true,title:'Neon Trinity Miniplayer',backgroundColor:'#100919',webPreferences:{preload:path.join(__dirname,'preload.cjs'),contextIsolation:true,nodeIntegration:false,sandbox:true,webSecurity:true}});miniWindow.webContents.setWindowOpenHandler(()=>({action:'deny'}));miniWindow.webContents.on('will-navigate',event=>event.preventDefault());miniWindow.webContents.on('did-finish-load',()=>miniWindow.webContents.send('player-state',playerState));miniWindow.on('closed',()=>{miniWindow=null;if(!quitting&&window&&!window.isDestroyed()&&!window.isVisible())window.show();});miniWindow.loadURL('ntapp://studio/mini.html');}
-app.on('before-quit',()=>{quitting=true;studioUpdater?.stop();presence.close();team.cancelLogin().catch(()=>{});});
+app.on('before-quit',()=>{quitting=true;studioUpdater?.stop();presence.close();spotify.cancelLogin().catch(()=>{});team.cancelLogin().catch(()=>{});});
+
+function spotifyOwner(expected){
+  try{const session=JSON.parse(team.getItem('neon-trinity-supabase-auth')||'null'),claims=JSON.parse(Buffer.from(session.access_token.split('.')[1],'base64url').toString());if(claims.iss!=='https://xyhkpwhfgjamssojjzbu.supabase.co/auth/v1'||!/^([a-f0-9]{8}-)([a-f0-9]{4}-){3}[a-f0-9]{12}$/i.test(claims.sub)||session.user?.id&&session.user.id!==claims.sub||expected!==claims.sub)throw new Error();return claims.sub;}catch{throw new Error('Bitte zuerst mit Discord im Studio anmelden.');}
+}

@@ -14,7 +14,7 @@ export function createCloudClient(){
 }
 export class SupabaseBackend{
  constructor(client=createCloudClient()){this.client=client;this.info={service:'neon-trinity-supabase',configured:true,discordClientId:'',publicBase:CLOUD.publicBase};this.actor=null;}
- async status(){const config=check(await this.client.from('nt_config').select('discord_client_id,public_base').eq('id',1).single());this.info={...this.info,discordClientId:config.discord_client_id,publicBase:config.public_base||CLOUD.publicBase};return this.info;}
+ async status(){const config=check(await this.client.from('nt_config').select('discord_client_id,public_base,spotify_client_id').eq('id',1).single());this.info={...this.info,discordClientId:config.discord_client_id,spotifyClientId:config.spotify_client_id||'',publicBase:config.public_base||CLOUD.publicBase};return this.info;}
  async discordAvailable(){const response=await fetch(CLOUD.url+'/auth/v1/settings',{headers:{apikey:CLOUD.key},cache:'no-store',signal:AbortSignal.timeout(10000)});if(!response.ok)throw new Error('Die Discord-Einrichtung in Supabase konnte gerade nicht geprüft werden.');const data=await response.json();this.info.discordEnabled=data.external?.discord===true;return this.info.discordEnabled;}
  async identity(){const result=check(await this.client.rpc('nt_identity'));this.actor=result;return result;}
  async catalog(){return check(await this.client.from('nt_catalog').select('data,revision').eq('id',1).single());}

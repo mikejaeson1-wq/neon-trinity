@@ -135,3 +135,6 @@ create policy nt_private_playlists_owner on public.nt_private_playlists
   for all to authenticated
   using (owner_id = (select auth.uid()) and (select private.nt_is_member()))
   with check (owner_id = (select auth.uid()) and (select private.nt_is_member()));
+
+-- Public OAuth client identifier only; user tokens remain encrypted on each PC.
+alter table public.nt_config add column spotify_client_id text not null default '' check (spotify_client_id = '' or spotify_client_id ~ '^[a-fA-F0-9]{32}$');
