@@ -24,7 +24,7 @@ export function validateImage(file) {
   if (file.size > MAX_IMAGE) throw new Error('Das Cover darf höchstens 12 MiB groß sein.');
 }
 export function newState() {
-  return { version: 1, theme: 'trinity', tracks: [], albums: [], playlists: [], events: [],
+  return { version: 1, theme: 'trinity', tracks: [], albums: [], playlists: [], privatePlaylists: [], events: [],
     settings: { owner: 'mikejaeson1-wq', repo: 'neon-trinity', baseUrl: '',backend:'supabase',publicBase:CLOUD.publicBase,discordClientId:'' },background:{blobId:'',dim:65,blur:0},teamAssets:[], published: {} };
 }
 export function validateState(data) {
@@ -40,10 +40,13 @@ export function validateState(data) {
       if(key==='tracks' && (typeof item.title!=='string' || !Number.isFinite(item.duration) || !/^[a-zA-Z0-9-]{1,80}$/.test(item.blobId||''))) throw new Error('Ungültiger Song im Backup.');
     }
   }
+  if(data.privatePlaylists!==undefined&&(!Array.isArray(data.privatePlaylists)||data.privatePlaylists.some(p=>!p||!/^[a-zA-Z0-9-]{1,80}$/.test(p.id||'')||typeof p.ownerId!=='string'||!Array.isArray(p.trackIds))))throw new Error('Ungültige persönliche Playlists im Backup.');
   const defaults=newState();
   const settings={...defaults.settings,...data.settings};
   if(!/^[A-Za-z0-9-]+$/.test(settings.owner)||!/^[A-Za-z0-9_.-]{1,100}$/.test(settings.repo))throw new Error('Ungültige GitHub-Einstellungen im Backup.');
-  settings.baseUrl=safeBaseUrl(settings.baseUrl);
+  // Earlier versions accepted a GitHub repository link as a website address.
+  // Repair that preference during an update while retaining the whole library.
+  settings.baseUrl=isGitHubRepositoryUrl(settings.baseUrl)?'':safeBaseUrl(settings.baseUrl);
   for(const a of data.albums)if(a.coverBlobId&&!/^[a-zA-Z0-9-]{1,80}$/.test(a.coverBlobId))throw new Error('Ungültiger Covereintrag.');
   return { ...defaults, ...data, theme: THEMES[data.theme] ? data.theme : 'trinity', settings, background:{blobId:validBackgroundId(data.background?.blobId),dim:Math.min(95,Math.max(10,Number(data.background?.dim)||65)),blur:Math.min(16,Math.max(0,Number(data.background?.blur)||0))}, published: data.published&&typeof data.published==='object'&&!Array.isArray(data.published)?data.published:{} };
 }
@@ -51,8 +54,10 @@ export function safeBaseUrl(input) {
   if (!input?.trim()) return '';
   const url = new URL(input.trim());
   if (url.protocol !== 'https:' || url.username || url.password || url.search || url.hash) throw new Error('Die öffentliche Adresse muss eine HTTPS-Adresse ohne Zugangsdaten, Suchparameter oder # sein.');
+  if(isGitHubRepositoryUrl(url.href))throw new Error('Hier gehört die öffentliche Website-Adresse hinein, z. B. https://mikejaeson1-wq.github.io/neon-trinity. Den github.com-Repository-Link bitte nicht eintragen. Ohne eigene Domain kannst du das Feld leer lassen.');
   return url.href.replace(/\/$/, '');
 }
+export function isGitHubRepositoryUrl(input){try{const url=new URL(input);return url.protocol==='https:'&&['github.com','www.github.com'].includes(url.hostname.toLowerCase());}catch{return false;}}
 export function albumLink(albumId, settings) {
   if(settings.backend==='supabase')return `${safeBaseUrl(settings.publicBase)||CLOUD.publicBase}/album.html?id=${encodeURIComponent(albumId)}`;
   const base = safeBaseUrl(settings.baseUrl) || `https://${settings.owner}.github.io/${settings.repo}`;
@@ -60,7 +65,7 @@ export function albumLink(albumId, settings) {
 }
 export function removeTrack(state, trackId) {
   state.tracks = state.tracks.filter(t=>t.id!==trackId);
-  for (const group of [...state.albums, ...state.playlists]) group.trackIds = group.trackIds.filter(x=>x!==trackId);
+  for (const group of [...state.albums, ...state.playlists, ...(state.privatePlaylists||[])]) group.trackIds = group.trackIds.filter(x=>x!==trackId);
 }
 
 function validBackgroundId(value){return typeof value==='string'&&/^[a-zA-Z0-9-]{1,80}$/.test(value)?value:'';}

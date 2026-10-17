@@ -3,7 +3,8 @@ const path=require('node:path');
 const http=require('node:http');
 const crypto=require('node:crypto');
 const CLOUD_ORIGIN='https://xyhkpwhfgjamssojjzbu.supabase.co';
-const AUTH_KEY=/^neon-trinity-supabase-auth(?:-[a-z-]+)?$/;
+// Supabase 2.118 also stores one verifier per OAuth flow, with a random hex ID.
+const AUTH_KEY=/^neon-trinity-supabase-auth(?:-user|-code-verifier|-flows-code-verifier|-flow-[a-f0-9]{32}-code-verifier)?$/;
 class DesktopCloud{
  constructor({app,safeStorage,shell,port=48731}){Object.assign(this,{app,safeStorage,shell,port});this.config={values:{},discordClientId:''};this.server=null;this.pending=null;this.loginTimer=null;}
  get file(){return path.join(this.app.getPath('userData'),'supabase-session.enc');}

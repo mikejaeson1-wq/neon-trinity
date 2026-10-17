@@ -5,9 +5,13 @@ const { pathToFileURL } = require('node:url');
 const { validRequest, githubRequest } = require('./service.cjs');
 const {DiscordPresence}=require('./discord.cjs');
 const {DesktopCloud}=require('./team.cjs');
+const {StudioUpdater}=require('./updates.cjs');
+const {autoUpdater}=require('electron-updater');
 protocol.registerSchemesAsPrivileged([{scheme:'ntapp',privileges:{standard:true,secure:true,supportFetchAPI:true,corsEnabled:true,stream:true}}]);
 app.setName('Neon Trinity Studio');
-let window;
+const primaryInstance=app.requestSingleInstanceLock();
+if(!primaryInstance)app.quit();
+let window,studioUpdater;
 let token='';
 let miniWindow,quitting=false,playerState={paused:true};
 const team=new DesktopCloud({app,safeStorage,shell});
@@ -16,7 +20,7 @@ const tokenPath=()=>path.join(app.getPath('userData'),'github-token.enc');
 function secureStorageAvailable(){return safeStorage.isEncryptionAvailable() && (process.platform!=='linux'||safeStorage.getSelectedStorageBackend()!=='basic_text');}
 async function readToken(){try{if(!secureStorageAvailable())return '';return safeStorage.decryptString(await fs.readFile(tokenPath()));}catch{return '';}}
 function trusted(event){const u=event.senderFrame&&new URL(event.senderFrame.url);if(!u||u.protocol!=='ntapp:'||u.hostname!=='studio')throw new Error('Unzulässiger Zugriff.');}
-app.whenReady().then(async()=>{
+if(primaryInstance)app.whenReady().then(async()=>{
   token=await readToken();
   await team.load();
   if(team.config.discordClientId)presence.configure(team.config.discordClientId);
@@ -54,7 +58,13 @@ app.whenReady().then(async()=>{
   handle('player:mini',()=>{openMini();return true;});
   handle('player:close-mini',()=>{miniWindow?.close();return true;});
   handle('player:show-studio',()=>{window.show();window.focus();return true;});
+  studioUpdater=new StudioUpdater({updater:autoUpdater,version:app.getVersion(),supported:app.isPackaged&&process.platform==='win32'&&!process.env.PORTABLE_EXECUTABLE_FILE,onStatus:state=>{if(window&&!window.isDestroyed())window.webContents.send('studio-update-status',state);},beforeInstall:()=>{quitting=true;},afterInstallError:()=>{quitting=false;}});
+  handle('studio:update-status',()=>studioUpdater.status());
+  handle('studio:update-check',()=>studioUpdater.check());
+  handle('studio:update-download',()=>studioUpdater.download());
+  handle('studio:update-install',()=>studioUpdater.install());
   createWindow();
+  studioUpdater.start();
   Menu.setApplicationMenu(Menu.buildFromTemplate([{label:'Studio',submenu:[{role:'reload',label:'Neu laden'},{role:'togglefullscreen',label:'Vollbild'},{type:'separator'},{role:'quit',label:'Beenden'}]},{label:'Bearbeiten',submenu:[{role:'undo',label:'Rückgängig'},{role:'redo',label:'Wiederholen'},{type:'separator'},{role:'cut',label:'Ausschneiden'},{role:'copy',label:'Kopieren'},{role:'paste',label:'Einfügen'},{role:'selectAll',label:'Alles auswählen'}]},{label:'Ansicht',submenu:[{role:'resetZoom',label:'Originalgröße'},{role:'zoomIn',label:'Vergrößern'},{role:'zoomOut',label:'Verkleinern'}]}]));
   app.on('activate',()=>{if(BrowserWindow.getAllWindows().length===0)createWindow();});
 });
@@ -68,7 +78,8 @@ function createWindow(){
   window.loadURL('ntapp://studio/index.html');
 }
 function openLink(input){try{const u=new URL(input);if(u.protocol==='https:'&&!u.username&&!u.password)shell.openExternal(u.href);}catch{}}
+app.on('second-instance',()=>{if(window&&!window.isDestroyed()){if(window.isMinimized())window.restore();window.show();window.focus();}});
 app.on('window-all-closed',()=>{if(process.platform!=='darwin')app.quit();});
 
 function openMini(){if(miniWindow&&!miniWindow.isDestroyed()){miniWindow.show();miniWindow.focus();return;}miniWindow=new BrowserWindow({width:390,height:205,minWidth:360,minHeight:200,resizable:false,frame:false,alwaysOnTop:true,skipTaskbar:true,title:'Neon Trinity Miniplayer',backgroundColor:'#100919',webPreferences:{preload:path.join(__dirname,'preload.cjs'),contextIsolation:true,nodeIntegration:false,sandbox:true,webSecurity:true}});miniWindow.webContents.setWindowOpenHandler(()=>({action:'deny'}));miniWindow.webContents.on('will-navigate',event=>event.preventDefault());miniWindow.webContents.on('did-finish-load',()=>miniWindow.webContents.send('player-state',playerState));miniWindow.on('closed',()=>{miniWindow=null;if(!quitting&&window&&!window.isDestroyed()&&!window.isVisible())window.show();});miniWindow.loadURL('ntapp://studio/mini.html');}
-app.on('before-quit',()=>{quitting=true;presence.close();team.cancelLogin().catch(()=>{});});
+app.on('before-quit',()=>{quitting=true;studioUpdater?.stop();presence.close();team.cancelLogin().catch(()=>{});});

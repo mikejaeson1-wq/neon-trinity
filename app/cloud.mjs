@@ -1,6 +1,7 @@
 import {createClient} from './vendor/supabase.mjs';
 import {CLOUD} from './cloud-config.mjs';
 import {applyOperations,validId} from './shared.mjs';
+import {privateRecord} from './private-playlists.mjs';
 const extensions={'audio/mpeg':'mp3','image/png':'png','image/jpeg':'jpg','image/webp':'webp'};
 export function cloudError(error){const e=new Error(error?.message||'Die Supabase-Anfrage ist fehlgeschlagen.');e.status=Number(error?.status)||0;e.code=error?.code;return e;}
 function check(result){if(result.error)throw cloudError(result.error);return result.data;}
@@ -13,8 +14,21 @@ export function createCloudClient(){
 export class SupabaseBackend{
  constructor(client=createCloudClient()){this.client=client;this.info={service:'neon-trinity-supabase',configured:true,discordClientId:'',publicBase:CLOUD.publicBase};this.actor=null;}
  async status(){const config=check(await this.client.from('nt_config').select('discord_client_id,public_base').eq('id',1).single());this.info={...this.info,discordClientId:config.discord_client_id,publicBase:config.public_base||CLOUD.publicBase};return this.info;}
+ async discordAvailable(){const response=await fetch(CLOUD.url+'/auth/v1/settings',{headers:{apikey:CLOUD.key},cache:'no-store',signal:AbortSignal.timeout(10000)});if(!response.ok)throw new Error('Die Discord-Einrichtung in Supabase konnte gerade nicht geprüft werden.');const data=await response.json();this.info.discordEnabled=data.external?.discord===true;return this.info.discordEnabled;}
  async identity(){const result=check(await this.client.rpc('nt_identity'));this.actor=result;return result;}
  async catalog(){return check(await this.client.from('nt_catalog').select('data,revision').eq('id',1).single());}
+ async privatePlaylists(){const rows=check(await this.client.from('nt_private_playlists').select('id,owner_id,data,revision').eq('owner_id',this.actor.id).order('updated_at'));return rows.map(row=>({...row.data,id:row.id,visibility:'private',ownerId:row.owner_id,_rev:row.revision}));}
+ async savePrivatePlaylist(record){
+  const value=privateRecord(record,this.actor?.id),data={id:value.id,title:value.title,description:value.description,trackIds:value.trackIds};
+  const payload={data,revision:crypto.randomUUID(),updated_at:new Date().toISOString()};
+  let query;
+  if(value._rev)query=this.client.from('nt_private_playlists').update(payload).eq('owner_id',this.actor.id).eq('id',value.id).eq('revision',value._rev);
+  else query=this.client.from('nt_private_playlists').insert({...payload,id:value.id,owner_id:this.actor.id});
+  const row=check(await query.select('id,owner_id,data,revision').maybeSingle());
+  if(!row){const error=new Error('Diese persönliche Playlist wurde auf einem anderen Gerät geändert. Bitte abgleichen und erneut öffnen.');error.status=409;throw error;}
+  return {...row.data,id:row.id,visibility:'private',ownerId:row.owner_id,_rev:row.revision};
+ }
+ async deletePrivatePlaylist(record){const row=check(await this.client.from('nt_private_playlists').delete().eq('owner_id',this.actor.id).eq('id',record.id).eq('revision',record._rev).select('id').maybeSingle());if(!row)throw new Error('Die persönliche Playlist wurde inzwischen geändert. Bitte erneut abgleichen.');}
  async save(operations){
   for(let attempt=0;attempt<5;attempt++){
    const row=await this.catalog();let next;

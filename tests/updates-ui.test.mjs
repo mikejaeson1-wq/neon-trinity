@@ -1,0 +1,27 @@
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import {readFile} from 'node:fs/promises';
+import {parseHTML} from 'linkedom';
+import 'fake-indexeddb/auto';
+const {window,document}=parseHTML(await readFile(new URL('../app/index.html',import.meta.url),'utf8'));
+globalThis.window=window;globalThis.document=document;globalThis.BroadcastChannel=undefined;
+globalThis.location={hash:'#overview',protocol:'ntapp:'};window.scrollTo=()=>{};
+Object.defineProperty(globalThis,'navigator',{value:{storage:{estimate:async()=>({usage:0})}},configurable:true});
+const audio=document.querySelector('audio');audio.pause=()=>{};audio.play=async()=>{};audio.load=()=>{};
+let listener,downloads=0,installs=0;
+let status={phase:'idle',currentVersion:'0.4.0'};
+window.neonDesktop={hasToken:async()=>false,cloudGetItem:async()=>null,cloudSetItem:async()=>{},cloudRemoveItem:async()=>{},onPlayerCommand:()=>{},onDiscordStatus:()=>{},updatePlayer:async()=>{},onUpdateStatus:fn=>listener=fn,updateStatus:async()=>status,checkForUpdates:async()=>status,downloadUpdate:async()=>{downloads++;listener({...status,phase:'downloading',percent:35});status={...status,phase:'ready',percent:100};listener(status);return status;},installUpdate:async()=>{installs++;assert.equal((await loadState()).theme,'hextech');return {...status,phase:'installing'};}};
+const {newState}=await import('../app/core.mjs');const {saveState,loadState}=await import('../app/db.mjs');
+await saveState({...newState(),theme:'hextech'});
+await import('../app/app.mjs');
+const wait=async fn=>{for(let i=0;i<100;i++){if(fn())return;await new Promise(resolve=>setTimeout(resolve,5));}throw new Error('Update-Bedienung hat nicht reagiert.');};
+const click=action=>{const button=document.querySelector(`[data-action="${action}"]`);assert.ok(button,action);button.dispatchEvent(new window.Event('click',{bubbles:true}));};
+test('Update-Hinweis, Download und Installation funktionieren über die Studio-Schaltflächen ohne offene Einstellungen zurückzusetzen',async()=>{
+  await wait(()=>listener);status={phase:'available',currentVersion:'0.4.0',version:'0.5.0',notes:'<img src=x onerror=alert(1)>'};listener(status);
+  assert.equal(document.querySelector('#studio-update-notice').hidden,false);assert.match(document.querySelector('#studio-update-notice').textContent,/0.5.0/);
+  location.hash='#settings';window.dispatchEvent(new window.Event('hashchange'));
+  const token=document.querySelector('[name="token"]');token.value='unguarded-form-text';
+  listener({...status,phase:'downloading',percent:25});assert.equal(token.value,'unguarded-form-text');assert.equal(document.querySelector('progress').getAttribute('value'),'25');
+  listener(status);assert.equal(document.querySelector('#studio-updates img'),null);click('update-download');await wait(()=>document.querySelector('[data-action="update-install"]'));
+  assert.equal(downloads,1);click('update-install');await wait(()=>installs===1);assert.equal((await loadState()).theme,'hextech');
+});

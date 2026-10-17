@@ -6,7 +6,7 @@ const clean = value => Object.fromEntries(Object.entries(value||{}).filter(([k])
 function canonical(value) { if(Array.isArray(value))return value.map(canonical);if(value&&typeof value==='object')return Object.fromEntries(Object.keys(value).sort().map(k=>[k,canonical(value[k])]));return value; }
 export const sameRecord = (a,b) => JSON.stringify(canonical(clean(a))) === JSON.stringify(canonical(clean(b)));
 export function snapshot(state) {
-  return {schema:2,tracks:structuredClone(state.tracks||[]),albums:structuredClone(state.albums||[]),playlists:structuredClone(state.playlists||[]),events:structuredClone(state.events||[]),assets:structuredClone(state.teamAssets||[]),publications:Object.entries(state.published||{}).map(([id,v])=>({id,...v}))};
+  return {schema:2,tracks:structuredClone(state.tracks||[]),albums:structuredClone(state.albums||[]),playlists:structuredClone((state.playlists||[]).filter(p=>p.visibility!=='private'&&!p.ownerId)),events:structuredClone(state.events||[]),assets:structuredClone(state.teamAssets||[]),publications:Object.entries(state.published||{}).map(([id,v])=>({id,...v}))};
 }
 export function diffCatalog(base, desired) {
   const operations=[];
@@ -30,6 +30,7 @@ export function validateRecord(kind,record) {
     Object.assign(r,{blobId:record.blobId,title:text(record.title,160).trim(),artist:text(record.artist,120),voices:text(record.voices,120),genre:text(record.genre,120),duration:record.duration,size:Number(record.size)||0,digest:text(record.digest,64),addedAt:text(record.addedAt,40)});
     if(record.coverBlobId){if(!validId(record.coverBlobId))throw new Error('Ungültiges Cover.');r.coverBlobId=record.coverBlobId;}
   }else if(kind==='albums'||kind==='playlists'){
+    if(kind==='playlists'&&(record.visibility==='private'||record.ownerId))throw new Error('Persönliche Playlists dürfen nicht im Bandkatalog gespeichert werden.');
     if(!Array.isArray(record.trackIds)||record.trackIds.length>2000||record.trackIds.some(id=>!validId(id)))throw new Error('Ungültige Titelliste.');
     Object.assign(r,{title:text(record.title,160).trim(),description:text(record.description),trackIds:[...new Set(record.trackIds)]});
     if(kind==='albums'){r.year=Math.min(2200,Math.max(1900,Number(record.year)||2026));if(record.coverBlobId){if(!validId(record.coverBlobId))throw new Error('Ungültiges Cover.');r.coverBlobId=record.coverBlobId;}}

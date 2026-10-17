@@ -1,0 +1,40 @@
+name: Windows-Installer veröffentlichen
+on:
+  push:
+    branches: [main]
+    paths: [package.json, .github/workflows/windows-release.yml]
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: windows-release
+  cancel-in-progress: false
+jobs:
+  release:
+    runs-on: windows-2025
+    timeout-minutes: 25
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+        with:
+          node-version: '22'
+      - name: Paketmanager installieren
+        run: npm install --global pnpm@11.25.0
+      - name: Abhängigkeiten aus Lockfile installieren
+        run: pnpm install --frozen-lockfile
+      - name: Studio testen
+        run: pnpm test
+      - name: Windows-Setup bauen
+        run: pnpm run build:installer --publish never
+        env:
+          CSC_IDENTITY_AUTO_DISCOVERY: 'false'
+      - name: Installer und Update-Kanal prüfen
+        run: node scripts/verify-release.mjs
+      - name: Installation und Erhalt lokaler Daten prüfen
+        run: ./scripts/test-installer.ps1
+      - name: Neue Version bereitstellen
+        run: node scripts/publish-release.mjs
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}

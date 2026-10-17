@@ -1,6 +1,6 @@
 {
   "name": "neon-trinity-studio",
-  "version": "0.3.0",
+  "version": "0.4.0",
   "private": true,
   "description": "Neon Trinity – Musik, Alben und Live-Setlists für Dex, Nix und Jax",
   "author": "Neon Trinity",
@@ -12,7 +12,7 @@
     "build:web": "node scripts/build.mjs",
     "prebuild:win": "node scripts/build-vendor.mjs && node scripts/prepare-source.mjs",
     "prebuild:installer": "node scripts/build-vendor.mjs && node scripts/prepare-source.mjs",
-    "build:win": "electron-builder --win portable --x64",
+    "build:win": "electron-builder --win nsis --x64",
     "build:installer": "electron-builder --win nsis --x64",
     "team:setup": "node scripts/setup-supabase.mjs",
     "build:vendor": "node scripts/build-vendor.mjs"
@@ -37,21 +37,43 @@
     ],
     "win": {
       "target": [
-        "portable"
+        "nsis"
       ],
       "icon": "app/assets/icon.png",
-      "signAndEditExecutable": false
+      "signAndEditExecutable": true,
+      "signExecutable": false
     },
     "portable": {
       "artifactName": "Neon-Trinity-Studio-${version}-Windows.exe"
     },
     "nsis": {
-      "oneClick": false,
-      "allowToChangeInstallationDirectory": true,
-      "createDesktopShortcut": true
-    }
+      "oneClick": true,
+      "perMachine": false,
+      "allowElevation": false,
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true,
+      "runAfterFinish": true,
+      "deleteAppDataOnUninstall": false,
+      "installerLanguages": [
+        "de_DE"
+      ],
+      "artifactName": "Neon-Trinity-Studio-Setup.exe"
+    },
+    "publish": [
+      {
+        "provider": "github",
+        "owner": "mikejaeson1-wq",
+        "repo": "neon-trinity",
+        "releaseType": "release"
+      }
+    ]
   },
   "dependencies": {
-    "@supabase/supabase-js": "2.118.0"
+    "@supabase/supabase-js": "2.118.0",
+    "electron-updater": "6.8.9"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/mikejaeson1-wq/neon-trinity.git"
   }
 }

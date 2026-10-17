@@ -42,10 +42,19 @@ export async function gitHash(blob) {
   return Array.from(new Uint8Array(digest),n=>n.toString(16).padStart(2,'0')).join('');
 }
 export async function publishFiles(settings, files, onProgress=()=>{}) {
+  const configured=safeBaseUrl(settings.baseUrl);
   const root=`/repos/${settings.owner}/${settings.repo}`;
   const repo=await request(root);if(repo.private) throw new Error('Das Repository muss für kostenloses Pages öffentlich sein.');
   const branch=repo.default_branch;
-  const ref=await request(`${root}/git/ref/heads/${encodeURIComponent(branch)}`);
+  let ref;
+  try{ref=await request(`${root}/git/ref/heads/${encodeURIComponent(branch)}`);}
+  catch(error){
+    if(error.status!==404&&error.status!==409)throw error;
+    onProgress('Leeres Repository wird für die Website vorbereitet …');
+    // No sha is sent: GitHub refuses to overwrite an existing README or commit.
+    await request(`${root}/contents/README.md`,'PUT',{message:'Initialize Neon Trinity website',content:await base64(new Blob(['# Neon Trinity\n\nPublic album player for Dex, Nix and Jax. Music is stored in Supabase.\n']))});
+    ref=await request(`${root}/git/ref/heads/${encodeURIComponent(branch)}`);
+  }
   const parent=await request(`${root}/git/commits/${ref.object.sha}`);
   const existing=await request(`${root}/git/trees/${parent.tree.sha}?recursive=1`);
   if(existing.truncated) throw new Error('Dieses Repository ist für die integrierte Veröffentlichung zu groß.');
@@ -82,12 +91,16 @@ export async function publishFiles(settings, files, onProgress=()=>{}) {
     if(!ownMarker)throw new Error('Das Repository hat bereits eine andere Pages-Konfiguration. Bitte deren Einstellungen prüfen.');
     pages=await request(`${root}/pages`,'PUT',{build_type:'legacy',source:{branch,path:'/docs'}});
   }
-  const configured=safeBaseUrl(settings.baseUrl);
   return { url:configured || pages.html_url || `https://${settings.owner}.github.io/${settings.repo}/`,status:pages.status || 'building' };
 }
 export async function pagesStatus(settings) {
   const root=`/repos/${settings.owner}/${settings.repo}`;
-  const pages=await request(`${root}/pages`);
+  // Verify repository access first, so a missing Pages site is not confused
+  // with a wrong repository name or an inaccessible repository.
+  await ensureRepository(settings.owner,settings.repo,false);
+  let pages;
+  try{pages=await request(`${root}/pages`);}
+  catch(error){if(error.status!==404)throw error;return {status:'not-configured',url:safeBaseUrl(settings.baseUrl)||`https://${settings.owner}.github.io/${settings.repo}/`,message:'Das Repository ist erreichbar. GitHub Pages ist noch nicht eingerichtet. Klicke auf „Albumwebsite einrichten / aktualisieren“. Falls das weiterhin scheitert, prüfe die Pages-Schreibrechte deines GitHub-Tokens.'};}
   const build=await request(`${root}/pages/builds/latest`).catch(e=>{if(e.status===404)return {status:'queued'};throw e;});
   return {url:pages.html_url,status:build.status||pages.status,error:build.error?.message};
 }

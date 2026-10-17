@@ -1,6 +1,10 @@
-# Neon Trinity Studio · Supabase Edition
+# Neon Trinity Studio 0.4.0 · Supabase Edition
 
 Dex, Nix und Jax nutzen dieselbe Mediathek über ihre eigenen Discord-Konten. Das eigene Supabase-Projekt „neon-trinity“ ist bereits angelegt und in der App eingestellt. Ein eigener Teamserver und eine Kommandozeilen-Einrichtung sind nicht erforderlich.
+
+## Update von 0.3.0
+
+Version 0.3.1 behebt den fälschlich abgelehnten Sitzungsschlüssel beim Discord-Login. Eure vorhandenen Freischaltungen, GitHub-Verbindung und lokalen Daten bleiben verwendbar. Wenn Discord im Projekt noch deaktiviert ist, zeigt das Studio nun einen Hinweis mit einem direkten Link zu den Anbieter-Einstellungen. Die gespeicherte Application ID für Rich Presence aktiviert den Login-Anbieter nicht automatisch. Nach dem Update erneut Mit Discord anmelden wählen. Ein noch nicht eingerichtetes GitHub Pages wird jetzt verständlich angezeigt. Leere, manuell angelegte Repositories werden beim Einrichten der Albumwebsite vorbereitet.
 
 ## 1. Vorhandene Daten sichern
 
@@ -61,7 +65,7 @@ Lade zum Prüfen eine MP3 hoch. Die anderen sollten sie in ihrer Mediathek sehen
 
 Die gemeinsame Mediathek funktioniert sofort nach der Discord-Einrichtung. Für externe Besucher benötigt ihr zusätzlich eine einmalig bereitgestellte öffentliche Player-Website. Die Browser-Studioadresse kann weiterhin auf ihren bisherigen privaten Benutzerkreis beschränkt sein.
 
-Dex öffnet Einstellungen → Optional: GitHub & öffentliche Albumwebsite. Dort das gewünschte GitHub-Konto und Repository verbinden und Albumwebsite einrichten / aktualisieren wählen. Falls noch kein Repository existiert, kann es dort angelegt werden. Auf GitHub liegen die Website-Dateien und auf Wunsch der Quellcode. Musik und Cover bleiben in Supabase. Nach dem erfolgreichen GitHub-Pages-Build werden Album- und Hörlinks für Gäste erreichbar.
+Dex öffnet Einstellungen → Optional: GitHub & öffentliche Albumwebsite. Dort das gewünschte GitHub-Konto und Repository verbinden und Albumwebsite einrichten / aktualisieren wählen. Für die gemeinsame Website-Einstellung muss Dex zuvor mit Discord angemeldet sein. Das Feld Eigene Domain / öffentliche Website-Adresse bleibt ohne eigene Domain leer. Ein Link mit github.com führt zum Repository; die Website-Adresse lautet beispielsweise https://mikejaeson1-wq.github.io/neon-trinity. Falls noch kein Repository existiert, kann es dort angelegt werden. Auf GitHub liegen die Website-Dateien und auf Wunsch der Quellcode. Musik und Cover bleiben in Supabase. Nach dem erfolgreichen GitHub-Pages-Build werden Album- und Hörlinks für Gäste erreichbar.
 
 Alternativ kann das Paket Neon-Trinity-Webseite.zip auf einem beliebigen statischen Webhosting entpackt werden. Die darin enthaltenen Dateien kommen direkt in das öffentliche Webverzeichnis. Anschließend trägt Dex die Basisadresse der Website unter Team & Discord ein. Eine vorhandene Wunschdomain lässt sich beim jeweiligen Webhost anbinden; eine Domainregistrierung ist nicht enthalten.
 
@@ -80,3 +84,17 @@ Das Projekt verwendet aktuell den kostenlosen Supabase-Tarif. Für Dateien stehe
 ## Wenn die Anmeldung nicht klappt
 
 Provider is not enabled: Discord in Supabase unter Authentication → Sign In / Providers aktivieren und Client ID sowie Client Secret speichern. Redirect-Fehler: die Discord-Callbackadresse aus Schritt 2 und die Supabase-Redirect-URLs aus Schritt 3 genau vergleichen. Konto nicht freigeschaltet: persönliche Benutzer-ID mit der Freigabetabelle abgleichen. Zweite Studio-Instanz geöffnet: diese schließen und den Login neu starten. Ein nicht erreichbarer Albumlink bedeutet meist, dass die öffentliche Player-Website noch nicht bereitgestellt oder der GitHub-Pages-Build noch nicht fertig ist.
+
+## Installation für Nix und Jax
+
+Öffnet https://mikejaeson1-wq.github.io/neon-trinity/install.html und klickt auf Studio für Windows installieren. Öffnet die heruntergeladene Setup-Datei. Das Studio wird automatisch für euer Windows-Konto installiert. Danach unter Team & Discord mit eurem eigenen freigeschalteten Discord-Konto anmelden. Eure gemeinsame Musik wird automatisch geladen. Node.js, GitHub-Token und Supabase-Einrichtung werden dafür nicht benötigt.
+
+## Updates im Studio
+
+Ab Version 0.4.0 sucht die installierte Windows-App beim Start und danach alle vier Stunden nach neuen Versionen. Unter Einstellungen → Studio & Updates könnt ihr jederzeit selbst prüfen. Update herunterladen lädt die neue Version im Studio; Neustarten & installieren schließt das Studio, installiert das Update und öffnet es wieder. Anmeldung, Musik und persönliche Einstellungen bleiben erhalten.
+
+Die bisherige ZIP-Ausgabe kann sich noch nicht selbst aktualisieren. Installiert die Setup-Version einmal auf demselben Windows-Konto; eure vorhandenen App-Daten bleiben erhalten.
+
+## Persönliche Playlists
+
+Beim Erstellen einer Playlist wählt ihr unter Sichtbarkeit: Für die Band oder Nur für mich. Persönliche Playlists werden eurem angemeldeten Discord-Konto zugeordnet und sind für die anderen beiden nicht sichtbar. Sie werden auch auf euren anderen Geräten nach der Anmeldung geladen. Gemeinsame Auftritte verwenden nur Band-Setlists. Die Sichtbarkeit wird beim Erstellen festgelegt; vorhandene gemeinsame Playlists bleiben gemeinsam.

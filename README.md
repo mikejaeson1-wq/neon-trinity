@@ -1,4 +1,4 @@
-# Neon Trinity Studio 0.3 · Supabase Edition
+# Neon Trinity Studio 0.4.0 · Supabase Edition
 
 Windows music studio for Dex, Nix and Jax. Shared songs, albums, artwork, playlists and performances live in the dedicated Supabase project. Authentication uses Discord OAuth with PKCE. Only three explicitly allowed Discord provider identities can access the band's data.
 
@@ -19,3 +19,9 @@ The optional GitHub Pages publisher uploads only the static public player, with 
 ## Verification limits
 
 Linux can build and inspect Windows app files but cannot prove the Windows runtime behavior, real Discord OAuth consent or Rich Presence. Those require the owner's configured Discord application and a Windows/Discord session. See the included setup guide for the exact callbacks and identity mapping.
+
+## Windows-Installation und Updates
+
+Nix und Jax laden den Installer über https://mikejaeson1-wq.github.io/neon-trinity/install.html herunter und melden sich im Studio mit Discord an. Updates werden unter Einstellungen → Studio & Updates angeboten.
+
+Eine neue Versionsnummer in package.json auf main startet den Windows-Release-Workflow. Er testet das Studio, baut den NSIS-Installer, prüft dessen SHA-512-Prüfsumme und veröffentlicht Installer, Blockmap und latest.yml zusammen in einem GitHub Release. Ein bereits veröffentlichtes Release wird nicht verändert.

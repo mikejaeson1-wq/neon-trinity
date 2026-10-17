@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {createRequire} from 'node:module';
-import {publishFiles,gitHash,seedSourceRepository} from '../app/publish.mjs';
+import {publishFiles,gitHash,seedSourceRepository,pagesStatus} from '../app/publish.mjs';
 const require=createRequire(import.meta.url);const {validRequest,githubRequest}=require('../desktop/service.cjs');
 const hex='a'.repeat(40), tree='b'.repeat(40);
 test('IPC lässt nur die benötigten GitHub-Endpunkte zu',()=>{for(const endpoint of ['/user','/user/repos','/repos/band/neon','/repos/band/neon/git/ref/heads/main','/repos/band/neon/git/trees/'+hex+'?recursive=1','/repos/band/neon/pages/builds/latest'])assert.equal(validRequest({endpoint,method:'GET'}),true);for(const endpoint of ['https://evil.com','//evil.com','/user/emails','/repos/band/neon/../../secret','/repos/band/neon/actions/secrets','/repos/band/neon/git/ref/heads/%2e%2e'])assert.throws(()=>validRequest({endpoint,method:'GET'}));assert.throws(()=>validRequest({endpoint:'/user',method:'DELETE'}));});
@@ -10,3 +10,25 @@ test('Publikation lädt Dateien atomar hoch, erhält andere Repo-Inhalte und erz
 test('Fremde Website wird vor dem ersten Upload abgewiesen',async()=>{const writes=[];globalThis.window={neonDesktop:{request:async i=>{if(i.method!=='GET')writes.push(i);if(i.endpoint==='/repos/band/neon')return {default_branch:'main'};if(i.endpoint.endsWith('/git/ref/heads/main'))return {object:{sha:hex}};if(i.endpoint.endsWith('/git/commits/'+hex))return {tree:{sha:tree}};if(i.endpoint.includes('/git/trees/'))return {tree:[{type:'blob',path:'docs/index.html',sha:hex}]};if(i.endpoint.includes('/contents/')){const e=new Error('Not found');e.status=404;throw e;}return {};}}};await assert.rejects(publishFiles({owner:'band',repo:'neon'},[{path:'index.html',blob:new Blob(['x'])}]),/andere Website/);assert.equal(writes.length,0);});
 test('Ein paralleler Remote-Commit wird als Konflikt gemeldet',async()=>{globalThis.window={neonDesktop:{request:async i=>{const p=i.endpoint;if(p==='/repos/band/neon')return {default_branch:'main'};if(p.includes('/git/ref/heads/'))return {object:{sha:hex}};if(p.includes('/git/commits/'+hex))return {tree:{sha:tree}};if(p.includes('/git/trees/'+tree))return {tree:[]};if(p.includes('/contents/')||p.endsWith('/pages')){const e=new Error('missing');e.status=404;throw e;}if(p.includes('/git/refs/')){const e=new Error('Conflict');e.status=422;throw e;}return {sha:hex};}}};await assert.rejects(publishFiles({owner:'band',repo:'neon'},[{path:'index.html',blob:new Blob(['x'])}]),e=>e.status===422);});
 test('Quellcode übernimmt nur ein neu angelegtes Repository und überschreibt keinen bestehenden App-Code',async()=>{const originalFetch=globalThis.fetch;globalThis.fetch=async()=>new Response(JSON.stringify({generator:'neon-trinity-source',files:[{path:'package.json',content:btoa('{}')}]}));const writes=[];globalThis.window={neonDesktop:{request:async i=>{if(i.method!=='GET')writes.push(i);if(i.endpoint==='/repos/band/neon')return {default_branch:'main'};if(i.endpoint.includes('/git/ref/heads/'))return {object:{sha:hex}};if(i.endpoint.includes('/git/commits/'+hex))return {tree:{sha:tree}};if(i.endpoint.includes('/git/trees/'+tree))return {tree:[{type:'blob',path:'existing-app.js'}]};return {sha:hex};}}};try{await assert.rejects(seedSourceRepository({owner:'band',repo:'neon'}),/enthält schon Dateien/);assert.equal(writes.length,0);}finally{globalThis.fetch=originalFetch;}});
+test('Ein leeres manuelles Repository wird ohne Überschreiben von Dateien initialisiert',async()=>{
+ let initialized=false;const writes=[];
+ globalThis.window={neonDesktop:{request:async input=>{validRequest(input);const p=input.endpoint;if(input.method!=='GET')writes.push(input);
+  if(p==='/repos/band/neon')return {default_branch:'main',private:false};
+  if(p.endsWith('/git/ref/heads/main')){if(!initialized)throw Object.assign(new Error('Git Repository is empty.'),{status:409});return {object:{sha:hex}};}
+  if(p.endsWith('/contents/README.md')){assert.equal(input.method,'PUT');assert.equal(input.body.sha,undefined);initialized=true;return {};}
+  if(p.endsWith('/git/commits/'+hex))return {tree:{sha:tree}};
+  if(p.includes('/git/trees/'+tree))return {tree:[{type:'blob',path:'README.md',sha:hex}]};
+  if(p.endsWith('/contents/docs/neon-trinity.json'))throw Object.assign(new Error('Not found'),{status:404});
+  if(p.endsWith('/pages')){if(input.method==='GET')throw Object.assign(new Error('Not found'),{status:404});return {source:{branch:'main',path:'/docs'},html_url:'https://band.github.io/neon/',status:'building'};}
+  return {sha:hex};
+ }}};
+ const result=await publishFiles({owner:'band',repo:'neon'},[{path:'index.html',blob:new Blob(['player'])}]);assert.equal(result.status,'building');assert.ok(initialized);assert.equal(writes.filter(c=>c.endpoint.endsWith('/contents/README.md')).length,1);
+ assert.throws(()=>validRequest({endpoint:'/repos/band/neon/contents/README.md',method:'PUT',body:{sha:hex}}));
+ assert.throws(()=>validRequest({endpoint:'/repos/band/neon/contents/private.txt',method:'PUT',body:{content:'x'}}));
+});
+test('Fehlendes Pages wird verständlich angezeigt, fehlender Repository-Zugriff bleibt ein Fehler',async()=>{
+ globalThis.window={neonDesktop:{request:async input=>{if(input.endpoint==='/repos/band/neon')return {private:false,permissions:{push:true}};throw Object.assign(new Error('Not Found'),{status:404});}}};
+ const result=await pagesStatus({owner:'band',repo:'neon'});assert.equal(result.status,'not-configured');assert.match(result.message,/Repository ist erreichbar/);assert.match(result.message,/noch nicht eingerichtet/);
+ globalThis.window.neonDesktop.request=async()=>{throw Object.assign(new Error('Repository not found'),{status:404});};await assert.rejects(pagesStatus({owner:'band',repo:'neon'}),e=>e.status===404);
+});
+test('Eine Repository-URL im Website-Feld wird vor jedem Upload abgewiesen',async()=>{let calls=0;globalThis.window={neonDesktop:{request:async()=>{calls++;}}};await assert.rejects(publishFiles({owner:'band',repo:'neon',baseUrl:'https://github.com/band/neon'},[{path:'index.html',blob:new Blob(['x'])}]),/Repository-Link/);assert.equal(calls,0);});
