@@ -1,5 +1,7 @@
+import {normalizeAppearance} from './appearance.mjs';
+import {validateLocalLibrary} from './local-library.mjs';
 import {CLOUD} from './cloud-config.mjs';
-export const THEMES = { trinity: 'Neon Trinity', cyberpunk: 'Cyberpunk', hextech: 'League / Hextech' };
+export const THEMES = { trinity: 'Neon Trinity', cyberpunk: 'Cyberpunk', hextech: 'League / Hextech', midnight:'Midnight', aurora:'Aurora', sunset:'Sunset', rose:'Rose Quartz', graphite:'Graphite', daylight:'Daylight' };
 export const MAX_AUDIO = 48 * 1024 * 1024;
 export const MAX_IMAGE = 12 * 1024 * 1024;
 export const id = () => crypto.randomUUID();
@@ -24,7 +26,7 @@ export function validateImage(file) {
   if (file.size > MAX_IMAGE) throw new Error('Das Cover darf höchstens 12 MiB groß sein.');
 }
 export function newState() {
-  return { version: 1, theme: 'trinity', tracks: [], albums: [], playlists: [], privatePlaylists: [], events: [],
+  return { version: 1, theme: 'trinity', tracks: [], albums: [], playlists: [], privatePlaylists: [], localTracks: [], localPlaylists: [], appearance:normalizeAppearance(), events: [],
     settings: { owner: 'mikejaeson1-wq', repo: 'neon-trinity', baseUrl: '',backend:'supabase',publicBase:CLOUD.publicBase,discordClientId:'' },background:{blobId:'',dim:65,blur:0},teamAssets:[], published: {} };
 }
 export function validateState(data) {
@@ -48,7 +50,7 @@ export function validateState(data) {
   // Repair that preference during an update while retaining the whole library.
   settings.baseUrl=isGitHubRepositoryUrl(settings.baseUrl)?'':safeBaseUrl(settings.baseUrl);
   for(const a of data.albums)if(a.coverBlobId&&!/^[a-zA-Z0-9-]{1,80}$/.test(a.coverBlobId))throw new Error('Ungültiger Covereintrag.');
-  return { ...defaults, ...data, theme: THEMES[data.theme] ? data.theme : 'trinity', settings, background:{blobId:validBackgroundId(data.background?.blobId),dim:Math.min(95,Math.max(10,Number(data.background?.dim)||65)),blur:Math.min(16,Math.max(0,Number(data.background?.blur)||0))}, published: data.published&&typeof data.published==='object'&&!Array.isArray(data.published)?data.published:{} };
+  return { ...defaults, ...data, ...validateLocalLibrary(data), appearance:normalizeAppearance(data.appearance), theme: THEMES[data.theme] ? data.theme : 'trinity', settings, background:{blobId:validBackgroundId(data.background?.blobId),dim:Math.min(95,Math.max(10,Number(data.background?.dim)||65)),blur:Math.min(16,Math.max(0,Number(data.background?.blur)||0))}, published: data.published&&typeof data.published==='object'&&!Array.isArray(data.published)?data.published:{} };
 }
 export function safeBaseUrl(input) {
   if (!input?.trim()) return '';

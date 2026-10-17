@@ -5,13 +5,14 @@ const { pathToFileURL } = require('node:url');
 const { validRequest, githubRequest } = require('./service.cjs');
 const {DiscordPresence}=require('./discord.cjs');
 const {DesktopCloud}=require('./team.cjs');
+const {roomFromArguments,listeningRoomFromURL}=require('./deep-link.cjs');
 const {StudioUpdater}=require('./updates.cjs');
 const {autoUpdater}=require('electron-updater');
 protocol.registerSchemesAsPrivileged([{scheme:'ntapp',privileges:{standard:true,secure:true,supportFetchAPI:true,corsEnabled:true,stream:true}}]);
 app.setName('Neon Trinity Studio');
 const primaryInstance=app.requestSingleInstanceLock();
 if(!primaryInstance)app.quit();
-let window,studioUpdater;
+let window,studioUpdater,pendingRoom=roomFromArguments(process.argv);
 let token='';
 let miniWindow,quitting=false,playerState={paused:true};
 const team=new DesktopCloud({app,safeStorage,shell});
@@ -21,6 +22,7 @@ function secureStorageAvailable(){return safeStorage.isEncryptionAvailable() && 
 async function readToken(){try{if(!secureStorageAvailable())return '';return safeStorage.decryptString(await fs.readFile(tokenPath()));}catch{return '';}}
 function trusted(event){const u=event.senderFrame&&new URL(event.senderFrame.url);if(!u||u.protocol!=='ntapp:'||u.hostname!=='studio')throw new Error('Unzulässiger Zugriff.');}
 if(primaryInstance)app.whenReady().then(async()=>{
+  if(app.isPackaged)app.setAsDefaultProtocolClient('neontrinity');
   token=await readToken();
   await team.load();
   if(team.config.discordClientId)presence.configure(team.config.discordClientId);
@@ -53,8 +55,10 @@ if(primaryInstance)app.whenReady().then(async()=>{
   handle('cloud:poll-login',()=>team.pollLogin());
   handle('cloud:cancel-login',()=>team.cancelLogin());
   handle('discord:configure',async id=>{presence.configure(id);team.config.discordClientId=id;await team.save();return true;});
-  handle('player:update',state=>{playerState={title:String(state.title||'').slice(0,160),artist:String(state.artist||'Neon Trinity').slice(0,120),position:Math.max(0,Number(state.position)||0),duration:Math.max(0,Number(state.duration)||0),paused:!!state.paused,roomUrl:typeof state.roomUrl==='string'?state.roomUrl.slice(0,1000):''};if(miniWindow&&!miniWindow.isDestroyed())miniWindow.webContents.send('player-state',playerState);presence.update(playerState);return true;});
+  handle('player:update',state=>{playerState={title:String(state.title||'').slice(0,160),artist:String(state.artist||'Neon Trinity').slice(0,120),position:Math.max(0,Number(state.position)||0),duration:Math.max(0,Number(state.duration)||0),paused:!!state.paused,private:!!state.private,roomUrl:typeof state.roomUrl==='string'?state.roomUrl.slice(0,1000):''};if(miniWindow&&!miniWindow.isDestroyed())miniWindow.webContents.send('player-state',playerState);presence.update(playerState);return true;});
   handle('player:command',command=>{if(!['toggle','next','previous','seek'].includes(command?.command))throw new Error('Unbekannter Player-Befehl.');window.webContents.send('player-command',command);return true;});
+  handle('listen:pending',()=>{const room=pendingRoom;pendingRoom=null;return room;});
+  handle('listen:background',()=>{window.minimize();return true;});
   handle('player:mini',()=>{openMini();return true;});
   handle('player:close-mini',()=>{miniWindow?.close();return true;});
   handle('player:show-studio',()=>{window.show();window.focus();return true;});
@@ -69,16 +73,19 @@ if(primaryInstance)app.whenReady().then(async()=>{
   app.on('activate',()=>{if(BrowserWindow.getAllWindows().length===0)createWindow();});
 });
 function createWindow(){
-  window=new BrowserWindow({width:1440,height:960,minWidth:720,minHeight:600,title:'Neon Trinity Studio',backgroundColor:'#111116',icon:path.join(__dirname,'../app/assets/icon.png'),webPreferences:{preload:path.join(__dirname,'preload.cjs'),contextIsolation:true,nodeIntegration:false,sandbox:true,webSecurity:true}});
+  window=new BrowserWindow({width:1440,height:960,minWidth:720,minHeight:600,title:'Neon Trinity Studio',backgroundColor:'#111116',icon:path.join(__dirname,'../app/assets/icon.png'),webPreferences:{preload:path.join(__dirname,'preload.cjs'),contextIsolation:true,nodeIntegration:false,sandbox:true,webSecurity:true,backgroundThrottling:false}});
   window.webContents.setWindowOpenHandler(({url})=>{if(url==='ntapp://studio/team-help.html'){const help=new BrowserWindow({width:940,height:850,title:'Neon Trinity · Team einrichten',backgroundColor:'#100919',webPreferences:{contextIsolation:true,nodeIntegration:false,sandbox:true,webSecurity:true}});help.webContents.setWindowOpenHandler(({url})=>{openLink(url);return {action:'deny'};});help.webContents.on('will-navigate',(event,target)=>{event.preventDefault();openLink(target);});help.loadURL(url);}else openLink(url);return {action:'deny'};});
   window.webContents.on('will-navigate',(e,url)=>{if(!url.startsWith('ntapp://studio/')){e.preventDefault();openLink(url);}});
   window.webContents.session.setPermissionRequestHandler((_contents,_permission,callback)=>callback(false));
   window.webContents.session.on('will-download',(_event,item)=>{if(!item.getURL().startsWith('blob:ntapp://studio/'))item.cancel();});
   window.on('close',event=>{if(!quitting&&miniWindow&&!miniWindow.isDestroyed()){event.preventDefault();window.hide();}});
   window.loadURL('ntapp://studio/index.html');
+  if(pendingRoom)window.minimize();
 }
 function openLink(input){try{const u=new URL(input);if(u.protocol==='https:'&&!u.username&&!u.password)shell.openExternal(u.href);}catch{}}
-app.on('second-instance',()=>{if(window&&!window.isDestroyed()){if(window.isMinimized())window.restore();window.show();window.focus();}});
+function receiveListeningRoom(room){pendingRoom=room;if(window&&!window.isDestroyed()){if(!window.webContents.isLoadingMainFrame()){window.webContents.send('listen-room',room);pendingRoom=null;}window.minimize();}}
+app.on('second-instance',(_event,argv)=>{const room=roomFromArguments(argv);if(room){receiveListeningRoom(room);return;}if(window&&!window.isDestroyed()){if(window.isMinimized())window.restore();window.show();window.focus();}});
+app.on('open-url',(event,url)=>{const room=listeningRoomFromURL(url);if(room){event.preventDefault();receiveListeningRoom(room);}});
 app.on('window-all-closed',()=>{if(process.platform!=='darwin')app.quit();});
 
 function openMini(){if(miniWindow&&!miniWindow.isDestroyed()){miniWindow.show();miniWindow.focus();return;}miniWindow=new BrowserWindow({width:390,height:205,minWidth:360,minHeight:200,resizable:false,frame:false,alwaysOnTop:true,skipTaskbar:true,title:'Neon Trinity Miniplayer',backgroundColor:'#100919',webPreferences:{preload:path.join(__dirname,'preload.cjs'),contextIsolation:true,nodeIntegration:false,sandbox:true,webSecurity:true}});miniWindow.webContents.setWindowOpenHandler(()=>({action:'deny'}));miniWindow.webContents.on('will-navigate',event=>event.preventDefault());miniWindow.webContents.on('did-finish-load',()=>miniWindow.webContents.send('player-state',playerState));miniWindow.on('closed',()=>{miniWindow=null;if(!quitting&&window&&!window.isDestroyed()&&!window.isVisible())window.show();});miniWindow.loadURL('ntapp://studio/mini.html');}

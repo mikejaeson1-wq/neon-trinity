@@ -15,6 +15,10 @@ $feed = Join-Path $apps[0].DirectoryName 'resources/app-update.yml'
 if (-not (Test-Path $feed)) { throw 'Der installierten App fehlt der Update-Kanal.' }
 $config = Get-Content $feed -Raw
 if ($config -notmatch 'mikejaeson1-wq' -or $config -notmatch 'neon-trinity') { throw 'Die App verwendet einen falschen Update-Kanal.' }
+$protocolKey = 'HKCU:\Software\Classes\neontrinity\shell\open\command'
+if (-not (Test-Path $protocolKey)) { throw 'Das installierte Studio hat seine Mithören-Links nicht registriert.' }
+$protocolCommand = (Get-Item $protocolKey).GetValue('')
+if ($protocolCommand -notlike '*Neon Trinity Studio.exe*' -or $protocolCommand -notlike '*%1*') { throw 'Die Mithören-Verknüpfung zeigt auf ein falsches Programm.' }
 $dataDirectory = Join-Path $env:APPDATA 'Neon Trinity Studio'
 New-Item -ItemType Directory -Path $dataDirectory -Force | Out-Null
 $sentinel = Join-Path $dataDirectory 'installer-preservation-test.txt'
@@ -22,4 +26,4 @@ Set-Content $sentinel 'keep-local-data'
 Install-Studio
 if ((Get-Content $sentinel -Raw).Trim() -ne 'keep-local-data') { throw 'Die erneute Installation hat lokale Daten verändert.' }
 Remove-Item $sentinel
-Write-Output 'Windows-Installation, Programmversion, Update-Konfiguration und Erhalt der App-Daten bestätigt.'
+Write-Output 'Windows-Installation, Programmversion, Update-Konfiguration, Mithören-Protokoll und Erhalt der App-Daten bestätigt.'

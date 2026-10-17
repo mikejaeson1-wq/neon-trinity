@@ -1,12 +1,13 @@
-# Neon Trinity Studio 0.4.0
+# Neon Trinity Studio 0.5.0
 
-- Eine Setup-Datei installiert das Studio für dein Windows-Konto und legt Verknüpfungen an.
-- Nix und Jax melden sich danach mit ihren bereits freigeschalteten Discord-Konten an.
-- Das Studio sucht beim Start und danach regelmäßig nach neuen Versionen.
-- Updates werden direkt im Studio heruntergeladen; Downloadfortschritt und Änderungen sind sichtbar.
-- Mit „Neustarten & installieren“ wird die geprüfte neue Version eingespielt und das Studio wieder geöffnet.
-- Anmeldung, lokale Mediathek und persönliche Einstellungen bleiben bei Updates erhalten.
-- Playlists können beim Erstellen für die Band oder persönlich für das eigene Discord-Konto angelegt werden. Persönliche Playlists werden getrennt gespeichert und sind für die anderen Bandmitglieder nicht zugänglich.
-- Die neue Installationsseite enthält einen dauerhaften Downloadlink zur aktuellen Version.
+- Eigene private lokale Mediathek für persönliche MP3s und Cover, getrennt pro Discord-Konto auf dem Gerät.
+- Lokale Playlists für private Songs und Band-Songs; private Dateien bleiben aus Teamsynchronisierung, Bandplaylists, Albumfreigaben und Discord-Aktivitäten ausgeschlossen.
+- Automatische Hörsessions für Band-Songs mit „Mithören“-Button in Discord.
+- Gastplayer ohne Anmeldung und Studio-Links, die die installierte App minimiert öffnen.
+- Gemeinsame Wiedergabe mit Zeitabgleich, sanfter Driftkorrektur und Wiederaufnahme nach Verbindungsproblemen.
+- Sechs zusätzliche Studio-Themes, fünf wählbare Hover-Effekte und vier Audio-Visualizer-Darstellungen.
+- Fünf Visualizer-Farbthemen sowie eigene Farben, Empfindlichkeit und Leuchten.
+- Persönliche Backups enthalten keine lokalen MP3s anderer auf dem Gerät verwendeter Discord-Konten.
+- Keine Spotify-Kontoanbindung: Die aktuelle Premium-Voraussetzung erfüllt die gewünschte kostenlose Nutzung nicht.
 
-Wer bisher die ZIP-Ausgabe nutzt, installiert diese Setup-Version einmal auf demselben Windows-Konto. Danach werden neue Versionen im Studio angeboten.
+Bereits installierte Setup-Versionen erhalten 0.5.0 unter Einstellungen → Studio & Updates. Private MP3s bitte über „Privat & lokal“ importieren. Für automatische Discord-Aktivitäten müssen Discord Desktop und die Aktivitätsfreigabe aktiv sein. Browsergäste starten den Ton einmal per Klick; für Studio-Links kann Windows bzw. der Browser eine Bestätigung anzeigen.

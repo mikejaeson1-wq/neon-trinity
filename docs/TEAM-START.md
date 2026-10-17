@@ -1,4 +1,4 @@
-# Neon Trinity Studio 0.4.0 · Supabase Edition
+# Neon Trinity Studio 0.5.0 · Supabase Edition
 
 Dex, Nix und Jax nutzen dieselbe Mediathek über ihre eigenen Discord-Konten. Das eigene Supabase-Projekt „neon-trinity“ ist bereits angelegt und in der App eingestellt. Ein eigener Teamserver und eine Kommandozeilen-Einrichtung sind nicht erforderlich.
 
@@ -98,3 +98,33 @@ Die bisherige ZIP-Ausgabe kann sich noch nicht selbst aktualisieren. Installiert
 ## Persönliche Playlists
 
 Beim Erstellen einer Playlist wählt ihr unter Sichtbarkeit: Für die Band oder Nur für mich. Persönliche Playlists werden eurem angemeldeten Discord-Konto zugeordnet und sind für die anderen beiden nicht sichtbar. Sie werden auch auf euren anderen Geräten nach der Anmeldung geladen. Gemeinsame Auftritte verwenden nur Band-Setlists. Die Sichtbarkeit wird beim Erstellen festgelegt; vorhandene gemeinsame Playlists bleiben gemeinsam.
+
+
+## Private lokale Mediathek (ab 0.5.0)
+
+Öffne **Privat & lokal**, melde dich mit deinem eigenen Discord-Konto an und wähle **Private MP3s importieren**. Dateien, Titel und Cover bleiben auf diesem Gerät. Hier abgelegte Musik wird nicht in Supabase gespeichert, nicht auf Albumseiten veröffentlicht und nicht als Discord-Aktivität angezeigt. Die gemeinsame Band-Mediathek bleibt ein eigener Bereich.
+
+Für diese MP3s gibt es **lokale Playlists**, die nur dein Konto auf diesem Gerät sieht. Bandplaylists und persönliche Playlists mit geräteübergreifendem Abgleich können nur Band-Songs enthalten. Beim Abmelden oder Konto-Wechsel stoppt ein privater Song und die private Sammlung wird ausgeblendet. Dein vollständiges Backup enthält deine eigene lokale Sammlung; lokale Dateien anderer Konten werden ausgelassen. Für eine Wiederherstellung persönlicher MP3s melde dich mit dem zugehörigen Discord-Konto an.
+
+## Automatisch gemeinsam hören
+
+Band-Songs starten nach der Discord-Anmeldung automatisch eine Hörsession. Unter **Team & Discord** kannst du das ausschalten oder die Session beenden. Private lokale Songs beenden eine bestehende Hörsession und werden nie dafür freigegeben. Ein Hörlink gibt den laufenden Band-Song an jeden weiter, der diesen Link besitzt, auch ohne Bandkonto.
+
+Mit laufendem Discord Desktop und aktivierter Aktivitätsfreigabe erscheint ein **Mithören**-Button in der Aktivität. Das ist ein eigener Link-Button. Die spezielle native Spotify-Integration wird nicht nachgebildet. Discord entscheidet über die Darstellung; eigene Aktivitätsbuttons sind unter Umständen nur bei anderen Nutzern sichtbar.
+
+Nach dem Klick auf den Hörlink wählen Gäste:
+
+- **Im Browser mithören:** ein Klick startet den Ton, ohne Installation und ohne Konto. Der Tab muss geöffnet bleiben und kann in den Hintergrund.
+- **Im Studio mithören:** Windows öffnet das installierte Studio über `neontrinity://listen/...`, auch wenn es bereits läuft. Es wird minimiert und übernimmt die Wiedergabe. Der Browser kann das Öffnen der App einmal bestätigen lassen. Das Studio lässt sich über die Taskleiste wieder öffnen.
+
+Titelwechsel, Pause, Fortsetzen und Spulen folgen dem Gastgeber. Kleine Zeitabweichungen werden sanft korrigiert. Bei größeren Abweichungen wird neu ausgerichtet. Netzwerk und Audioausgabe beeinflussen den verbleibenden Versatz; eine samplegenaue Mehrraum-Audioanlage ist dies nicht. Bei längerer Verbindungsunterbrechung pausiert der Gast. Ohne Gastgeber endet die Session nach spätestens 90 Sekunden.
+
+## Themes, Hover und Visualizer
+
+Unter **Einstellungen** stehen neun Studio-Themes und die Hover-Effekte Neon-Leuchten, Schweben, Kontur, Leicht kippen und Ohne Effekt bereit. Theme, Hintergrund und Effekte gelten nur für dieses Gerät.
+
+Der **Visualizer** analysiert die tatsächlich abgespielte Musik, auch private lokale MP3s. Wähle Spektrum, Spiegel, Orbit oder Wellenform und eines von fünf Farbthemen. Mit den drei Farbwählern gestaltest du dein eigenes Theme; Empfindlichkeit und Leuchten lassen sich anpassen. Vollbild zeigt nur die Visualisierung. Er benötigt keine Mikrofonfreigabe.
+
+## Spotify – kostenlos angefragt
+
+Es ist keine Spotify-Kontoanbindung enthalten. Nach den aktuellen Spotify-Regeln benötigt der Inhaber einer neuen Entwickler-App Premium. Vollständige Wiedergabe über das Web Playback SDK setzt ebenfalls Premium voraus. Damit erfüllt eine solche Anbindung die Vorgabe „nur kostenlos“ nicht. Details: https://developer.spotify.com/documentation/web-api/tutorials/february-2026-migration-guide und https://developer.spotify.com/documentation/web-playback-sdk.

@@ -6,7 +6,12 @@ const clean = value => Object.fromEntries(Object.entries(value||{}).filter(([k])
 function canonical(value) { if(Array.isArray(value))return value.map(canonical);if(value&&typeof value==='object')return Object.fromEntries(Object.keys(value).sort().map(k=>[k,canonical(value[k])]));return value; }
 export const sameRecord = (a,b) => JSON.stringify(canonical(clean(a))) === JSON.stringify(canonical(clean(b)));
 export function snapshot(state) {
-  return {schema:2,tracks:structuredClone(state.tracks||[]),albums:structuredClone(state.albums||[]),playlists:structuredClone((state.playlists||[]).filter(p=>p.visibility!=='private'&&!p.ownerId)),events:structuredClone(state.events||[]),assets:structuredClone(state.teamAssets||[]),publications:Object.entries(state.published||{}).map(([id,v])=>({id,...v}))};
+  const privateIds=new Set((state.localTracks||[]).map(t=>t.id));
+  const privateBlobs=new Set((state.localTracks||[]).flatMap(t=>[t.blobId,t.coverBlobId]).filter(Boolean));
+  const tracks=(state.tracks||[]).filter(t=>!privateIds.has(t.id)&&!privateBlobs.has(t.blobId)&&!t.ownerId&&!['local','private'].includes(t.visibility)).map(t=>{const result={...t};if(privateBlobs.has(result.coverBlobId))delete result.coverBlobId;return result;});
+  const allowed=new Set(tracks.map(t=>t.id));
+  const groups=list=>(list||[]).map(p=>{const result={...p,trackIds:p.trackIds.filter(id=>allowed.has(id))};if(privateBlobs.has(result.coverBlobId))delete result.coverBlobId;return result;});
+  return {schema:2,tracks:structuredClone(tracks),albums:structuredClone(groups(state.albums)),playlists:structuredClone(groups((state.playlists||[]).filter(p=>!['local','private'].includes(p.visibility)&&!p.ownerId))),events:structuredClone(state.events||[]),assets:structuredClone((state.teamAssets||[]).filter(a=>!privateBlobs.has(a.id))),publications:Object.entries(state.published||{}).map(([id,v])=>({id,...v}))};
 }
 export function diffCatalog(base, desired) {
   const operations=[];
@@ -26,11 +31,12 @@ export function validateRecord(kind,record) {
   if(!record||!validId(record.id))throw new Error('Ungültiger Datensatz.');
   const r={id:record.id};
   if(kind==='tracks'){
+    if(record.ownerId||['local','private'].includes(record.visibility))throw new Error('Private lokale Songs dürfen nicht im Bandkatalog gespeichert werden.');
     if(!validId(record.blobId)||!Number.isFinite(record.duration)||record.duration<=0||record.duration>86400)throw new Error('Ungültiger Song.');
     Object.assign(r,{blobId:record.blobId,title:text(record.title,160).trim(),artist:text(record.artist,120),voices:text(record.voices,120),genre:text(record.genre,120),duration:record.duration,size:Number(record.size)||0,digest:text(record.digest,64),addedAt:text(record.addedAt,40)});
     if(record.coverBlobId){if(!validId(record.coverBlobId))throw new Error('Ungültiges Cover.');r.coverBlobId=record.coverBlobId;}
   }else if(kind==='albums'||kind==='playlists'){
-    if(kind==='playlists'&&(record.visibility==='private'||record.ownerId))throw new Error('Persönliche Playlists dürfen nicht im Bandkatalog gespeichert werden.');
+    if(kind==='playlists'&&(['private','local'].includes(record.visibility)||record.ownerId))throw new Error('Persönliche Playlists dürfen nicht im Bandkatalog gespeichert werden.');
     if(!Array.isArray(record.trackIds)||record.trackIds.length>2000||record.trackIds.some(id=>!validId(id)))throw new Error('Ungültige Titelliste.');
     Object.assign(r,{title:text(record.title,160).trim(),description:text(record.description),trackIds:[...new Set(record.trackIds)]});
     if(kind==='albums'){r.year=Math.min(2200,Math.max(1900,Number(record.year)||2026));if(record.coverBlobId){if(!validId(record.coverBlobId))throw new Error('Ungültiges Cover.');r.coverBlobId=record.coverBlobId;}}

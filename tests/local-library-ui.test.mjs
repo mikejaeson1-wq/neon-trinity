@@ -1,0 +1,37 @@
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import {readFile} from 'node:fs/promises';
+import {parseHTML} from 'linkedom';
+import 'fake-indexeddb/auto';
+import {TeamClient} from '../app/team.mjs';
+import {snapshot,emptyCatalog} from '../app/shared.mjs';
+const {window,document}=parseHTML(await readFile(new URL('../app/index.html',import.meta.url),'utf8'));
+globalThis.window=window;globalThis.document=document;globalThis.BroadcastChannel=undefined;globalThis.location={hash:'#local',protocol:'http:'};window.scrollTo=()=>{};
+Object.defineProperty(globalThis,'navigator',{value:{storage:{estimate:async()=>({usage:0}),persist:async()=>true}},configurable:true});
+const realTimeout=globalThis.setTimeout;globalThis.setTimeout=(fn,delay,...args)=>{const t=realTimeout(fn,delay,...args);t.unref?.();return t;};
+const audio=document.querySelector('audio');audio.play=async()=>{audio.paused=false;audio.dispatchEvent(new window.Event('play'));};audio.pause=()=>{audio.paused=true;};audio.load=()=>{};
+globalThis.Audio=class{duration=180;removeAttribute(){}load(){}set src(value){queueMicrotask(()=>this.onloadedmetadata?.());}};
+globalThis.MediaMetadata=class{constructor(data){Object.assign(this,data);}};
+const dialog=document.querySelector('dialog');dialog.showModal=()=>dialog.open=true;dialog.close=()=>dialog.open=false;
+globalThis.FormData=class{constructor(form){this.values=[...form.querySelectorAll('input[name],textarea[name],select[name]')].filter(el=>!['checkbox','radio'].includes(el.type)||el.checked).map(el=>[el.name,el.type==='file'?el.files?.[0]||new File([],''):el.value]);}get(key){return this.values.find(([k])=>k===key)?.[1]??null;}entries(){return this.values[Symbol.iterator]();}};
+let team,networkWrites=0;
+TeamClient.prototype.detect=async function(){team=this;this.user={id:'dex-user',alias:'Dex',allowed:true};this.baseline=emptyCatalog();this.backend.upload=async()=>{networkWrites++;throw new Error('A local MP3 must never reach Storage');};this.backend.save=async()=>{networkWrites++;return {catalog:emptyCatalog()};};return true;};
+await import('../app/app.mjs');const {loadState}=await import('../app/db.mjs');
+const click=selector=>{const el=document.querySelector(selector);assert.ok(el,selector);el.dispatchEvent(new window.Event('click',{bubbles:true}));};
+const navigate=route=>{location.hash='#'+route;window.dispatchEvent(new window.Event('hashchange'));};
+const settle=async()=>new Promise(r=>realTimeout(r,20));
+const selectValue=(select,value)=>select.querySelectorAll('option').forEach(o=>o.selected=o.value===value);
+test('Privater Import, lokale Playlist und Player bleiben auf das eigene Konto begrenzt',async()=>{
+ await document.querySelector('#local-audio-files').onchange({target:{files:[new File(['ID3-private'],'My Personal Song.mp3',{type:'audio/mpeg'})]}});let state=await loadState();assert.equal(state.tracks.length,0);assert.equal(state.localTracks.length,1);assert.equal(state.localTracks[0].ownerId,'dex-user');assert.equal(networkWrites,0);assert.ok(document.querySelector('main').textContent.includes('My Personal Song'));assert.equal(snapshot(state).tracks.length,0);
+ click('[data-action="new-local-playlist"]');let form=document.querySelector('#group-form');form.querySelector('[name="title"]').value='My Local Mix';const chosen=document.querySelector('#song-selection input');chosen.checked=true;document.querySelector('#song-selection').onchange({target:chosen});await form.onsubmit({preventDefault(){},target:form});state=await loadState();assert.deepEqual(state.localPlaylists[0].trackIds,[state.localTracks[0].id]);assert.equal(state.localPlaylists[0].visibility,'local');assert.equal(networkWrites,0);
+ click('[data-action="add-to-playlist"]');assert.match(dialog.textContent,/nur|lokalen/i);assert.equal(document.querySelectorAll('[data-add-playlist]').length,1);dialog.close();
+ navigate('albums');click('[data-action="new-album"]');assert.equal(document.querySelectorAll('#song-selection input').length,0);dialog.close();
+ navigate('playlists');click('[data-action="new-playlist"]');form=document.querySelector('#group-form');assert.equal(document.querySelectorAll('#song-selection input').length,0);const scope=form.querySelector('[name="visibility"]');selectValue(scope,'local');scope.onchange();assert.equal(document.querySelectorAll('#song-selection input').length,1);selectValue(scope,'band');scope.onchange();assert.equal(document.querySelectorAll('#song-selection input').length,0);dialog.close();
+ navigate('local');click('[data-action="play-track"]');await settle();assert.equal(audio.paused,false);assert.match(document.querySelector('#now-playing').textContent,/My Personal Song/);click('[data-action="edit-track"]');assert.equal(dialog.open,true);
+ team.user={id:'nix-user',alias:'Nix',allowed:true};navigate('local');assert.equal(audio.paused,true);assert.equal(dialog.open,false);assert.ok(!document.querySelector('#now-playing').textContent.includes('My Personal Song'));assert.ok(!document.querySelector('main').textContent.includes('My Personal Song'));assert.ok(!document.querySelector('#sidebar-playlists').textContent.includes('My Local Mix'));
+ team.user=null;navigate('local');assert.match(document.querySelector('main').textContent,/Mit deinem Discord-Konto öffnen/);assert.equal(networkWrites,0);
+});
+test('Hover, zusätzliche Studio-Themes und eigenes Visualizer-Theme sind über die Einstellungen speicherbar',async()=>{
+ navigate('settings');assert.equal(document.querySelectorAll('[data-action="theme"]').length,9);click('[data-action="theme"][data-theme="daylight"]');await settle();assert.equal(document.documentElement.dataset.theme,'daylight');click('[data-action="hover-effect"][data-effect="tilt"]');await settle();assert.equal(document.documentElement.dataset.hover,'tilt');
+ const controls=document.querySelector('#visualizer-controls'),color=controls.querySelector('[name="color1"]');color.value='#fc7722';controls.onchange({target:color});await settle();const state=await loadState();assert.equal(state.appearance.visualizer.theme,'custom');assert.equal(state.appearance.visualizer.color1,'#fc7722');assert.equal(state.appearance.hover,'tilt');assert.equal(networkWrites,0);
+});

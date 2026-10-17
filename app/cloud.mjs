@@ -1,4 +1,5 @@
 import {createClient} from './vendor/supabase.mjs';
+import {THEMES} from './core.mjs';
 import {CLOUD} from './cloud-config.mjs';
 import {applyOperations,validId} from './shared.mjs';
 import {privateRecord} from './private-playlists.mjs';
@@ -63,7 +64,7 @@ export class SupabaseBackend{
    const ids=new Set([album.coverBlobId,...tracks.flatMap(t=>[t.blobId,t.coverBlobId])].filter(Boolean));
    const assets=[...ids].map(id=>catalog.assets.find(a=>a.id===id&&a.provider==='supabase'));
    if(assets.some(a=>!a))throw new Error('Eine Datei fehlt in Supabase. Bitte die Mediathek zuerst synchronisieren.');
-   rows.push({id,data:{album,tracks,assets,theme:['trinity','cyberpunk','hextech'].includes(theme)?theme:'trinity'},asset_paths:assets.map(a=>a.path),updated_at:new Date().toISOString()});
+   rows.push({id,data:{album,tracks,assets,theme:THEMES[theme]?theme:'trinity'},asset_paths:assets.map(a=>a.path),updated_at:new Date().toISOString()});
   }
   if(rows.length)check(await this.client.from('nt_releases').upsert(rows));
   const existing=check(await this.client.from('nt_releases').select('id'));
