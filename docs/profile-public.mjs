@@ -1,6 +1,6 @@
 import {createClient} from './vendor/supabase.mjs';
 import {CLOUD} from './cloud-config.mjs';
-import {Profiles,PROFILE_ALIASES,profileLink} from './profiles.mjs';
+import {Profiles,PROFILE_ALIASES,profileLink,applyProfileColors} from './profiles.mjs';
 import {profileCard} from './profiles-view.mjs';
 import {escapeHTML as h} from './core.mjs';
 const $=s=>document.querySelector(s);
@@ -12,7 +12,7 @@ function message(text){$('#community-status').textContent=text||'';}
 function render(){
  const artist=selected(),rows=artist?profiles.rows.filter(p=>p.alias===artist):profiles.rows;
  $('#artist-profiles').classList.toggle('single-profile',!!artist);
- $('#artist-profiles').innerHTML=rows.map(p=>profileCard(p,profiles,{publicPage:true})).join('');
+ $('#artist-profiles').innerHTML=rows.map(p=>profileCard(p,profiles,{publicPage:true})).join('');applyProfileColors(document,rows);
  $('#artist-navigation').innerHTML='<a href="profile.html" '+(!artist?'aria-current="page"':'')+'>Die Band</a>'+PROFILE_ALIASES.map(a=>'<a href="'+profileLink(a)+'" '+(artist===a?'aria-current="page"':'')+'>'+a+'</a>').join('');
  const name=rows.length===1?rows[0].display_name:'Lerne die Stimmen kennen.';$('#profile-heading').textContent=name;document.title=(artist?name:'Profile')+' · Neon Trinity';
  $('#discord-login').hidden=!!user;$('#discord-logout').hidden=!user;$('#account-status').textContent=user?'Mit Discord verbunden':'';$('#reaction-settings').hidden=!user;
@@ -32,6 +32,7 @@ async function start(){
  if(code){try{const result=await client.auth.exchangeCodeForSession(code);if(result.error)throw result.error;}catch(e){authError='Die Discord-Anmeldung konnte nicht abgeschlossen werden. Bitte erneut versuchen.';}
  const artist=sessionStorage.getItem('neon-trinity-profile-return');sessionStorage.removeItem('neon-trinity-profile-return');history.replaceState({},'',url.pathname+(PROFILE_ALIASES.includes(artist)?'?artist='+artist.toLowerCase():''));}
  else if(error){history.replaceState({},'',url.pathname);authError='Die Discord-Anmeldung wurde abgebrochen oder abgelehnt.';}
+ const mobileReturn=Number(sessionStorage.getItem('neon-trinity-mobile-return'));if((code||error)&&mobileReturn&&Date.now()-mobileReturn<15*60*1000){sessionStorage.removeItem('neon-trinity-mobile-return');location.replace(new URL('mobile.html',location.href).href);return;}
  try{const result=await client.auth.getSession();if(result.error)throw result.error;if(result.data.session){const verified=await client.auth.getUser();if(!verified.error)user=verified.data.user;}profiles.setOwner(user);await profiles.load();message(authError);render();}catch(e){message(e.message);render();}
  try{const {data,error}=await client.from('nt_releases').select('id,data').order('updated_at',{ascending:false});if(error)throw error;$('#release-list').innerHTML=(data||[]).map(r=>'<a class="release-card" href="album.html?id='+encodeURIComponent(r.id)+'"><img src="assets/neon-trinity.png" alt=""><div><h3>'+h(r.data?.album?.title||'Neon Trinity')+'</h3><p>'+Number(r.data?.tracks?.length||0)+' Songs · Neon Trinity</p><span>Album anhören ↗</span></div></a>').join('');$('#public-releases').hidden=!data?.length;}catch{$('#public-releases').hidden=true;}
 }

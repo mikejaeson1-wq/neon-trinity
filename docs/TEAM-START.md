@@ -151,13 +151,13 @@ Das Studio lädt keine Spotify-Audiodateien herunter. Der Audio-Visualizer und d
 
 Ab Version 0.6 zeigt der untere Player immer die gewählte Musikquelle. Bei Spotify stehen Titel, Interpret, Cover und Wiedergabefortschritt direkt dort. Play/Pause, voriger/nächster Titel, Position, Lautstärke, Zufall und Wiederholung steuern dein eigenes Spotify-Konto auf dem laufenden Spotify-Connect-Gerät. Die Steuerung bleibt beim Wechsel zu einem anderen Studio-Bereich verfügbar.
 
-Unter Player & Equalizer wählst du fünf Player-Skins und drei Ansichten: Classic Rack, Cover Player oder Kompakt. Über das Miniplayer-Symbol unten rechts öffnest du ein kleines, frei verschiebbares Fenster über anderen Anwendungen. Das Studio hält die Wiedergabe im Hintergrund aufrecht. Über ◈ im Miniplayer lassen sich Skin und Ansicht direkt ändern; über ↗ kehrst du zum Studio zurück.
+Unter Player & Equalizer wählst du elf Player-Skins und drei Ansichten: Classic Rack, Cover Player oder Kompakt. Über das Miniplayer-Symbol unten rechts öffnest du ein kleines, frei verschiebbares Fenster über anderen Anwendungen. Das Studio hält die Wiedergabe im Hintergrund aufrecht. Über ◈ im Miniplayer lassen sich Skin und Ansicht direkt ändern; über ↗ kehrst du zum Studio zurück.
 
 EQ öffnet den 10-Band-Equalizer. Schalte ihn ein, wähle Neutral, Rock, Bass, Stimmen, Electronic oder Nacht, oder stelle die zehn Frequenzbänder selbst ein. Vorverstärkung, Balance und automatische Pegelreserve helfen bei der Klangregelung. Die Einstellungen bleiben auf diesem Gerät. Der Equalizer bearbeitet Band-Songs und private lokale MP3s. Spotify Connect gibt den Ton in Spotify aus: Dafür verwendest du in Spotify unter Einstellungen → Wiedergabe den dortigen Equalizer.
 
 ## 15. Eigene öffentliche Profile
 
-Öffne Profile im Studio. Als Dex, Nix oder Jax bearbeitest du nur dein eigenes Profil: Profilname, Beschreibung und eigenes PNG-, JPG- oder WebP-Bild bis 8 MiB. Das Bild wird mittig quadratisch zugeschnitten; prüfe die Vorschau und klicke Profil öffentlich speichern. Bilder kannst du dort ersetzen oder entfernen.
+Öffne Profile im Studio. Als Dex, Nix oder Jax bearbeitest du nur dein eigenes Profil: Profilfarbe, Profilname, Beschreibung und eigenes PNG-, JPG- oder WebP-Bild bis 8 MiB. Das Bild wird mittig quadratisch zugeschnitten; prüfe die Vorschau und klicke Profil öffentlich speichern. Bilder kannst du dort ersetzen oder entfernen.
 
 Die Profile sind ohne Installation unter https://mikejaeson1-wq.github.io/neon-trinity/profile.html erreichbar. Über das Teilen-Symbol kopierst du den persönlichen Link von Dex, Nix oder Jax. Besucher sehen das öffentliche Profil und die veröffentlichten Bandalben. Spotify-Playlists, Spotify-Höraktivität, persönliche Bandplaylists und private lokale Songs bleiben davon getrennt.
 
@@ -172,3 +172,40 @@ https://mikejaeson1-wq.github.io/neon-trinity/profile.html
 Die bestehenden Einträge für die Windows-App und die Browser-Version bleiben erhalten. Die Discord-Redirect-Adresse ist weiterhin die bestehende Supabase-Callback-Adresse; in der Discord-App muss dafür keine neue Callback-Adresse angelegt werden.
 
 Danach testen: Profilwebsite öffnen → Mit Discord anmelden → Rückkehr zur Profilwebsite → Folgen oder Gefällt mir. Ohne den zusätzlichen Supabase-Eintrag kann die Anmeldung stattdessen zur bisherigen Studio-Adresse zurückführen.
+
+
+## 17. Profilfarben, Cyberpunk-Schriftzüge und neue Skins
+
+Jeder wählt unter Profile seine eigene Farbe. Die Vorschau zeigt sie sofort; Profil öffentlich speichern übernimmt sie für alle Besucher und alle drei Studios. Nur dein eigenes Bandkonto darf deine Profilfarbe ändern. Die Banner zeigen eigene Cyberpunk-Schriftzüge für DEX, NIX und JAX.
+
+Unter Player & Equalizer bleiben die bisherigen fünf Skins erhalten. Neu sind Cyberware Head, Capybara FM, Glacier Wolf, Black Raven, Cassette Bot und Cosmic Jellyfish. Im Miniplayer öffnet PL die aktuelle Playlist. Ein Klick auf einen Titel startet ihn. Weitere Spotify-Titel lassen sich seitenweise laden; Spotify erlaubt Titellisten nur für eigene oder kollaborative Playlists. Nicht verfügbare und lokale Spotify-Dateien bleiben gesperrt. Das Miniplayer-Fenster passt seine Höhe an die geöffneten Bereiche an.
+
+## 18. Handy-App über QR-Code installieren
+
+Öffne im Studio den neuen Bereich Handy-App. Scanne den QR-Code mit der Handykamera oder öffne direkt:
+
+https://mikejaeson1-wq.github.io/neon-trinity/mobile.html
+
+Android: In Chrome Installieren wählen; alternativ Browsermenü → App installieren / Zum Startbildschirm hinzufügen. iPhone: In Safari öffnen → Teilen → Zum Home-Bildschirm → Als Web-App öffnen / Hinzufügen. Die installierte App anschließend über ihr neues Symbol öffnen und darin anmelden.
+
+Die kleine Web-App bietet Bandmusik, Alben, Bandplaylists, deine persönlichen Bandplaylists und dein eigenes Spotify Premium. Sie dient zum Hören; Imports und Bandverwaltung bleiben im Studio. Öffentliche Alben lassen sich auch ohne Anmeldung hören. Für die interne Mediathek meldet sich jeder mit seinem freigeschalteten Discord-Konto an. Private lokale MP3s vom PC werden nicht auf das Handy übertragen.
+
+Die Handy-Anmeldung verwendet denselben Supabase-Rücksprung wie die Profilwebsite aus Abschnitt 16. In Supabase und Discord ist keine zusätzliche Callback-Adresse nötig.
+
+Für Spotify ergänzt Dex im vorhandenen Spotify Developer Dashboard unter Settings → Redirect URIs zusätzlich exakt:
+
+https://mikejaeson1-wq.github.io/neon-trinity/mobile.html
+
+Die Windows-Rücksprungadresse bleibt bestehen. Web Playback SDK bei den verwendeten APIs aktivieren. Bei Development Mode müssen die Spotify-Konten von Nix und Jax unter User Management zugelassen sein. Jeder verbindet in der Handy-App sein eigenes Premium-Konto. Der Handy-Player heißt in Spotify Connect Neon Trinity · Handy. Nach der Anmeldung wird er vorbereitet; dann einen Song wählen und auf ▶ tippen. Alternativ lässt sich ein eigenes Spotify-Connect-Gerät auswählen.
+
+Spotify auf dem Handy nutzt PKCE ohne Client Secret. Die Spotify-Sitzung bleibt ausschließlich im Sitzungsspeicher dieses Browsers und ist an das verifizierte Discord-Konto gebunden. Abmelden oder Konto wechseln löscht sie dort; nach vollständigem Beenden des Browsers oder beim Wechsel zwischen Browser und installierter App kann erneutes Verbinden nötig sein. Spotify-Playlists und Zugriffsschlüssel werden nicht mit anderen Nutzern geteilt.
+
+Zum Hören braucht die Handy-App Internet. Sie speichert ihre Oberfläche für einen erneuten Start, aber keine Songs, Spotify-Daten oder API-Antworten offline. Auf iOS ist für die erste Spotify-Wiedergabe ein Klick nötig; die Lautstärke stellst du mit den Gerätetasten ein. Hintergrund- und Sperrbildschirmwiedergabe hängen vom Browser und Betriebssystem ab.
+
+## 19. Discord bei Nix oder Jax prüfen
+
+Studio → Team & Discord → Discord neu verbinden stellt die Verbindung auch mit derselben App-ID frisch her. Verbindung & Sichtbarkeit prüfen zeigt, ob Discord Desktop antwortet, welches Konto verbunden ist und wann Discord eine Aktivität bestätigt hat. Die Verbindung hat jetzt einen Anmelde-Timeout und versucht es nach einer Unterbrechung automatisch erneut. Das Bandlogo wird als Bild der Aktivität mitgesendet, ohne dass jedes Mitglied eine eigene Discord-App anlegen muss.
+
+Discord Desktop öffnen und dort mit demselben Konto wie im Studio anmelden. Unter Discord → Einstellungen → Aktivitätsfreigabe das Teilen von Aktivitäten mit Freunden und auf Servern erlauben. Unter Registrierte Spiele darf Neon Trinity nicht ausgeblendet sein; die Datenschutz-Einstellungen des betreffenden Servers müssen den Aktivitätsstatus ebenfalls erlauben. Studio und Discord unter demselben Windows-Benutzer starten. Nur das Discord-Browserfenster reicht für die lokale Studio-Aktivität nicht aus.
+
+Discords Bestätigung zeigt, dass die Aktivität angenommen wurde. Sichtbarkeit für andere hängt weiterhin von den persönlichen Discord-Einstellungen ab und kann vom Studio nicht erzwungen werden. Private lokale Songs und Spotify werden vom Studio weiterhin nicht als eigene öffentliche Aktivität übertragen.

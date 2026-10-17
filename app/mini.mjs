@@ -1,11 +1,13 @@
+import {escapeHTML as h,time as trackTime} from './core.mjs';
 import {playerOptions,equalizerView,sourceLabel} from './player-view.mjs';
 import {EQ_PRESETS,normalizePlayer,normalizeEqualizer} from './player-settings.mjs';
 const api=window.neonDesktop,$=s=>document.querySelector(s),time=n=>Math.floor((n||0)/60)+':'+String(Math.floor((n||0)%60)).padStart(2,'0');
-let state={},settingsOpen=false,eqKey='',optionsKey='';
+let state={},settingsOpen=false,eqKey='',optionsKey='',queueKey='';
 const send=input=>api.playerCommand(input).catch(e=>{$('#mini-status').textContent=e.message;});
 $('#restore').onclick=()=>api.showStudio();$('#close').onclick=()=>api.closeMini();
 $('#spotify-link').onclick=e=>{e.preventDefault();send({command:'open-spotify'});};
-$('#settings-toggle').onclick=()=>{settingsOpen=!settingsOpen;$('#mini-settings').hidden=!settingsOpen;$('#settings-toggle').setAttribute('aria-expanded',String(settingsOpen));api.resizeMini?.({settings:settingsOpen,equalizer:!$('#mini-equalizer').hidden});};
+$('#settings-toggle').onclick=()=>{settingsOpen=!settingsOpen;$('#mini-settings').hidden=!settingsOpen;$('#settings-toggle').setAttribute('aria-expanded',String(settingsOpen));resize();};
+$('#playlist-toggle').onclick=()=>send({command:'appearance',value:{playlistOpen:!state.appearance?.playlistOpen}});
 $('#eq-toggle').onclick=()=>send({command:'appearance',value:{equalizerOpen:!state.appearance?.equalizerOpen}});
 for(const b of document.querySelectorAll('[data-command]'))b.onclick=()=>send({command:b.dataset.command});
 $('#seek').onchange=e=>send({command:'seek',value:Number(e.target.value)/100});$('#volume').onchange=e=>send({command:'volume',value:Number(e.target.value)});
@@ -22,6 +24,10 @@ api.onPlayerState(next=>{
  $('#shuffle').setAttribute('aria-pressed',String(!!state.shuffle));$('#repeat').setAttribute('aria-pressed',String(state.repeat&&state.repeat!=='off'));$('#repeat').textContent=state.repeat==='track'?'REP1':'REP';$('#spotify-link').hidden=state.source!=='spotify';$('#format').innerHTML=state.source==='spotify'?'SPOTIFY<br>CONNECT':'MP3<br>STEREO';
  const options=JSON.stringify([p.skin,p.layout]);if(options!==optionsKey){optionsKey=options;$('#mini-settings').innerHTML=playerOptions(p);for(const select of document.querySelectorAll('[data-player-setting]'))select.onchange=()=>send({command:'appearance',value:{[select.dataset.playerSetting]:select.value}});}
  const key=JSON.stringify([state.source,state.equalizer]);if(key!==eqKey&&!document.activeElement?.closest?.('#mini-equalizer')){eqKey=key;$('#mini-equalizer').innerHTML=equalizerView(state.equalizer,state.source);bindEqualizer();}
- const changed=$('#mini-equalizer').hidden===p.equalizerOpen;$('#mini-equalizer').hidden=!p.equalizerOpen;$('#eq-toggle').setAttribute('aria-expanded',String(p.equalizerOpen));if(changed)api.resizeMini?.({settings:settingsOpen,equalizer:p.equalizerOpen});
+ const changed=$('#mini-equalizer').hidden===p.equalizerOpen;$('#mini-equalizer').hidden=!p.equalizerOpen;$('#eq-toggle').setAttribute('aria-expanded',String(p.equalizerOpen));if(changed)resize();
+ const qkey=JSON.stringify([state.queue,state.queueTitle,state.queueMessage,state.queueMore,state.queueLoading]);if(qkey!==queueKey){queueKey=qkey;const panel=$('#mini-playlist'),scroll=panel.querySelector('.mini-track-list')?.scrollTop||0;panel.innerHTML='<div class="mini-playlist-heading"><strong>'+h(state.queueTitle||'Playlist')+'</strong><span>'+(state.queue?.length||0)+' Titel</span></div>'+(state.queueMessage?'<p class="mini-queue-message">'+h(state.queueMessage)+'</p>':'')+'<div class="mini-track-list">'+(state.queue||[]).map((t,i)=>'<button class="mini-track '+(t.active?'active':'')+'" data-track="'+h(t.id)+'" '+(t.playable===false?'disabled':'')+' aria-current="'+(t.active?'true':'false')+'"><span>'+String(i+1).padStart(2,'0')+'</span><span><strong>'+h(t.title)+'</strong><small>'+h(t.artist)+'</small></span><span>'+trackTime(t.duration)+'</span></button>').join('')+'</div>'+(state.queueMore?'<button id="queue-more" '+(state.queueLoading?'disabled':'')+'>Weitere Titel laden</button>':'');for(const button of panel.querySelectorAll('[data-track]'))button.onclick=()=>send({command:'queue-play',value:{source:state.source,id:button.dataset.track}});if($('#queue-more'))$('#queue-more').onclick=()=>send({command:'queue-more'});panel.querySelector('.mini-track-list').scrollTop=scroll;}
+ $('#mini-playlist').hidden=!p.playlistOpen;$('#playlist-toggle').setAttribute('aria-expanded',String(p.playlistOpen));resize();
  const canvas=$('#spectrum'),c=canvas.getContext?.('2d');if(c){const css=getComputedStyle(document.body);c.clearRect(0,0,150,34);c.fillStyle=css.getPropertyValue('--lcd-ink');(state.spectrum||[]).slice(0,24).forEach((v,i)=>c.fillRect(i*6,34-v*.32,4,Math.max(1,v*.32)));}
 });
+
+function resize(){const call=()=>api.resizeMini?.({settings:settingsOpen,equalizer:!$('#mini-equalizer').hidden,playlist:!$('#mini-playlist').hidden,height:document.body.scrollHeight+4});if(globalThis.requestAnimationFrame)requestAnimationFrame(call);else call();}

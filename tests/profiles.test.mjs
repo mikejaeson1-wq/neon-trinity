@@ -40,3 +40,8 @@ test('Profilbilder werden mittig auf 512 Pixel zugeschnitten und nur als Rasterb
  const result=await prepareAvatar(file,{createBitmap:async()=>({width:1000,height:600,close(){closed=true;}}),document:{createElement:()=>canvas}});
  assert.equal(result,blob);assert.deepEqual(crop.slice(1),[200,0,600,600,0,0,512,512]);assert.equal(canvas.width,512);assert.ok(closed);await assert.rejects(prepareAvatar(new Blob(['svg'],{type:'image/svg+xml'})),/PNG/);
 });
+test('Eigene Profilfarbe wird öffentlich gespeichert, validiert und auf jedes Banner angewandt',async()=>{
+ const {profileColor,applyProfileColors}=await import('../app/profiles.mjs');const f=fixture(),p=new Profiles({client:f.client});p.setOwner({id:'dex',alias:'Dex'});await p.load();await p.save({display_name:'Dex',bio:'',accent_color:'#EF8429'});assert.equal(f.rows[0].accent_color,'#ef8429');assert.equal(f.rows[1].accent_color,undefined);assert.throws(()=>profileInput({display_name:'Dex',accent_color:'red; background:url(evil)'},'Dex'),/Profilfarbe/);assert.equal(profileColor('url(evil)','Nix'),'#c777ff');
+ const {document}=parseHTML(f.rows.map(row=>profileCard(row,p)).join(''));applyProfileColors(document,f.rows);assert.equal(document.querySelector('[data-artist="dex"]').style.getPropertyValue('--profile-accent'),'#ef8429');assert.equal(document.querySelectorAll('.artist-wordmark').length,3);assert.equal(document.querySelector('.artist-wordmark').getAttribute('aria-label'),'Dex');
+ p.setOwner(null);await p.load();assert.equal(p.rows[0].accent_color,'#ef8429');f.client.auth.stopAutoRefresh();
+});

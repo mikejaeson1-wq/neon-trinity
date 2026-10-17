@@ -3,16 +3,17 @@ create table public.nt_profiles (
  alias text primary key check(alias in ('Dex','Nix','Jax')),
  display_name text not null check(length(btrim(display_name)) between 1 and 60),
  bio text not null default '' check(length(bio)<=1200),
+ accent_color text not null default '#a2f972' check(accent_color ~ '^#[a-fA-F0-9]{6}$'),
  avatar_path text not null default '' check(avatar_path='' or avatar_path ~ ('^'||alias||'/[a-f0-9-]{36}\.(png|jpg|webp)$')),
  follower_count bigint not null default 0 check(follower_count>=0),
  like_count bigint not null default 0 check(like_count>=0),
  updated_at timestamptz not null default now()
 );
-insert into public.nt_profiles(alias,display_name) values ('Dex','Dex'),('Nix','Nix'),('Jax','Jax');
+insert into public.nt_profiles(alias,display_name,accent_color) values ('Dex','Dex','#a2f972'),('Nix','Nix','#c777ff'),('Jax','Jax','#68d8ff');
 alter table public.nt_profiles enable row level security;
 revoke all on public.nt_profiles from public,anon,authenticated;
 grant select on public.nt_profiles to anon,authenticated;
-grant update(display_name,bio,avatar_path) on public.nt_profiles to authenticated;
+grant update(display_name,bio,avatar_path,accent_color) on public.nt_profiles to authenticated;
 create policy nt_profiles_read on public.nt_profiles for select to anon,authenticated using(true);
 create policy nt_profiles_edit_own on public.nt_profiles for update to authenticated
  using(alias=(select private.nt_actor()->>'alias'))
@@ -57,7 +58,7 @@ create trigger nt_profile_count after insert or delete on public.nt_profile_reac
  for each row execute function private.nt_profile_count();
 create function private.nt_profile_timestamp() returns trigger language plpgsql
  security invoker set search_path='' as $$
-begin if new.display_name is distinct from old.display_name or new.bio is distinct from old.bio or new.avatar_path is distinct from old.avatar_path then new.updated_at=now();end if;return new;end $$;
+begin if new.display_name is distinct from old.display_name or new.bio is distinct from old.bio or new.avatar_path is distinct from old.avatar_path or new.accent_color is distinct from old.accent_color then new.updated_at=now();end if;return new;end $$;
 revoke all on function private.nt_profile_timestamp() from public,anon,authenticated;
 create trigger nt_profile_timestamp before update on public.nt_profiles for each row execute function private.nt_profile_timestamp();
 

@@ -1,4 +1,4 @@
-# Neon Trinity Studio 0.6.0 · Supabase Edition
+# Neon Trinity Studio 0.7.0 · Supabase Edition
 
 Windows music studio for Dex, Nix and Jax. Shared songs, albums, artwork, playlists and performances live in the dedicated Supabase project. Authentication uses Discord OAuth with PKCE. Only three explicitly allowed Discord provider identities can access the band's data.
 
@@ -29,11 +29,11 @@ Eine neue Versionsnummer in package.json auf main startet den Windows-Release-Wo
 Spotify Premium is optional: the Windows studio uses PKCE and encrypted per-account credentials to browse playlists and control an official Spotify Connect device. Dex configures the public client ID once under Spotify; no client secret is used. See docs/TEAM-START.md for the registered loopback redirect and account allowlist.
 
 
-## Player and public profiles in 0.6
+## Player and public profiles
 
 The dock and floating Winamp-style miniplayer share one source-aware transport.
 Spotify metadata and commands stay bound to the current account and active
-Connect device. Five skins and three layouts are device preferences. The
+Connect device. Eleven skins and three layouts are device preferences. The
 10-band Web Audio equalizer uses the existing MP3 audio graph, with gain
 headroom, balance and a limiter; Spotify Connect audio remains in Spotify and
 uses Spotify's own equalizer.
@@ -45,3 +45,10 @@ counts but only their own account's reactions. Follows and likes are unique
 per Discord account, artist and reaction type. The public profile page uses
 its own PKCE browser session, without installing the Studio or exposing the
 band catalog. Its exact Supabase redirect URL is documented in TEAM-START.md.
+
+
+## Mobile listening and profile colors in 0.7
+
+The studio's Handy-App screen contains an offline-generated QR code for the public mobile.html PWA on the band's existing GitHub Pages site. It supports public releases, Discord-authorized band music and personal band playlists, plus an account-bound Spotify Premium Web Playback SDK player. The existing profile.html Supabase callback returns mobile OAuth to a fixed mobile.html target. Spotify PKCE uses one additional exact mobile.html redirect; tokens are sessionStorage-only, owner-bound and excluded from the service-worker cache. The service worker handles a fixed app-shell allowlist and never intercepts OAuth queries, APIs or media. Mobile playback and background behavior still need verification on the actual target phones.
+
+Public profile accent_color is constrained to six-digit hex and has an owner-only column update grant under existing alias RLS. A separate migration is included for existing installations. New Cyberpunk name artwork and six mascot skins are source assets; the five existing skins remain. The mini-player playlist uses the same validated queue and playback source as the studio, with paged private Spotify items. Discord RPC now has a handshake timeout, forced reconnect, connection-generation guards, account diagnostics and acknowledgement status; its activity uses the public band icon URL. Discord's own activity privacy settings still control visibility.
