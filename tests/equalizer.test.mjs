@@ -1,0 +1,13 @@
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import {AudioVisualizer} from '../app/visualizer.mjs';
+import {EQ_FREQUENCIES,normalizeEqualizer} from '../app/player-settings.mjs';
+test('10-Band-Equalizer verändert den echten Audiopfad mit Pegelreserve und bleibt beim Umschalten verbunden',async()=>{
+ const connections=[],nodes=[];const param=value=>({value,setTargetAtTime(v){this.value=v;}}),node=kind=>{const n={kind,connect(other){connections.push([this,other]);},disconnect(){for(let i=connections.length-1;i>=0;i--)if(connections[i][0]===this)connections.splice(i,1);}};nodes.push(n);return n;};
+ let sources=0;class Context{currentTime=3;state='suspended';destination=node('output');createMediaElementSource(){sources++;return node('source');}createAnalyser(){return {...node('analyser'),frequencyBinCount:1024,getByteFrequencyData(out){out.fill(120);},getByteTimeDomainData(out){out.fill(128);}};}createGain(){return {...node('gain'),gain:param(1)};}createBiquadFilter(){return {...node('filter'),frequency:param(0),Q:param(0),gain:param(0)};}createStereoPanner(){return {...node('panner'),pan:param(0)};}createDynamicsCompressor(){return {...node('limiter'),threshold:param(0),ratio:param(0),knee:param(0),attack:param(0),release:param(0)};}async resume(){this.state='running';}}
+ const audio={paused:false},v=new AudioVisualizer(audio,{AudioContextClass:Context});v.configureEqualizer({enabled:true,preset:'custom',gains:[6,5,4,3,2,1,0,-1,-2,-3],preamp:-2,balance:.4});await v.resume();
+ assert.equal(sources,1);assert.equal(v.filters.length,10);assert.deepEqual(v.filters.map(n=>n.frequency.value),EQ_FREQUENCIES);assert.deepEqual(v.filters.map(n=>n.gain.value),[6,5,4,3,2,1,0,-1,-2,-3]);assert.ok(Math.abs(v.preamp.gain.value-10**(-8/20))<1e-9);assert.equal(v.panner.pan.value,.4);assert.equal(v.limiter.ratio.value,20);assert.ok(!connections.some(([a,b])=>a===v.source&&b===v.analyser));
+ assert.equal(v.spectrum().length,24);v.configureEqualizer({enabled:false});assert.ok(v.filters.every(n=>n.gain.value===0));assert.equal(v.preamp.gain.value,1);assert.equal(v.panner.pan.value,0);await v.resume();assert.equal(sources,1);assert.equal(nodes.filter(n=>n.kind==='filter').length,10);
+ audio.paused=true;assert.deepEqual(v.spectrum(),[]);
+});
+test('Equalizer begrenzt importierte Werte und lässt fremde Daten nicht in Audio-Einstellungen gelangen',()=>{const eq=normalizeEqualizer({enabled:true,preset:'bad',gains:[Infinity,99,-99,'3','bad'],preamp:30,balance:-50,token:'secret'});assert.deepEqual(eq.gains,[0,12,-12,3,0,0,0,0,0,0]);assert.equal(eq.preset,'flat');assert.equal(eq.preamp,0);assert.equal(eq.balance,-1);assert.equal(eq.token,undefined);});

@@ -1,0 +1,26 @@
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import {readFile} from 'node:fs/promises';
+import {parseHTML} from 'linkedom';
+import 'fake-indexeddb/auto';
+import {TeamClient} from '../app/team.mjs';
+import {Profiles} from '../app/profiles.mjs';
+import {emptyCatalog} from '../app/shared.mjs';
+const {window,document}=parseHTML(await readFile(new URL('../app/index.html',import.meta.url),'utf8'));globalThis.window=window;globalThis.document=document;globalThis.BroadcastChannel=undefined;globalThis.location={hash:'#profiles',protocol:'http:'};window.scrollTo=()=>{};
+Object.defineProperty(globalThis,'navigator',{value:{storage:{estimate:async()=>({usage:0})},clipboard:{writeText:async()=>{}}},configurable:true});
+const delay=globalThis.setTimeout;globalThis.setTimeout=(fn,n,...args)=>{const t=delay(fn,n,...args);t.unref?.();return t;};
+globalThis.FormData=class{constructor(form){this.items=[...form.querySelectorAll('input[name],textarea[name],select[name]')].filter(el=>el.type!=='checkbox'||el.checked).map(el=>[el.name,el.value]);}get(key){return this.items.find(([k])=>k===key)?.[1]??null;}};
+const audio=document.querySelector('audio');audio.pause=()=>{audio.paused=true;};const dialog=document.querySelector('dialog');dialog.showModal=()=>dialog.open=true;dialog.close=()=>dialog.open=false;
+let team,saved;
+TeamClient.prototype.detect=async function(){team=this;this.user={id:'dex',alias:'Dex',allowed:true};this.baseline=emptyCatalog();return true;};
+Profiles.prototype.load=async function(){this.rows=['Dex','Nix','Jax'].map(alias=>({alias,display_name:alias,bio:'Public bio',avatar_path:'',like_count:0,follower_count:0,updated_at:'v1'}));this.loaded=true;this.onChange();};
+Profiles.prototype.save=async function(input){saved={...input,alias:this.alias};const row=this.rows.find(p=>p.alias===this.alias);Object.assign(row,{display_name:input.display_name,bio:input.bio});this.message='Gespeichert';this.onChange();};
+await import('../app/app.mjs');
+const until=async fn=>{for(let i=0;i<100;i++){if(fn())return;await new Promise(r=>delay(r,5));}throw Error('Profile UI timed out');};
+const navigate=route=>{location.hash='#'+route;window.dispatchEvent(new window.Event('hashchange'));};
+test('Studio bearbeitet das eigene öffentliche Profil und trennt den Entwurf beim Kontowechsel',async()=>{
+ await until(()=>document.querySelector('#profile-form'));let form=document.querySelector('#profile-form');assert.match(document.querySelector('main').textContent,/Dein öffentliches Profil: Dex/);assert.equal(document.querySelectorAll('.artist-card').length,3);
+ form.querySelector('[name="display_name"]').value='Dex Resonance';form.querySelector('[name="bio"]').value='My public bio';navigate('player');navigate('profiles');form=document.querySelector('#profile-form');assert.equal(form.querySelector('[name="display_name"]').value,'Dex Resonance');await form.onsubmit({preventDefault(){}});assert.equal(saved.alias,'Dex');assert.equal(saved.display_name,'Dex Resonance');assert.equal(document.querySelector('.artist-card h2').textContent,'Dex Resonance');
+ team.user={id:'nix',alias:'Nix',allowed:true};navigate('profiles');await until(()=>document.querySelector('#profile-form [name="display_name"]')?.value==='Nix');assert.match(document.querySelector('main').textContent,/Dein öffentliches Profil: Nix/);assert.equal(document.querySelector('#profile-form [name="bio"]').value,'Public bio');
+ team.user=null;navigate('profiles');await until(()=>!document.querySelector('#profile-form'));assert.equal(document.querySelectorAll('.artist-card').length,3);
+});

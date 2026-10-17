@@ -1,3 +1,4 @@
+import {normalizePlayer,normalizeEqualizer} from './player-settings.mjs';
 export const HOVER_EFFECTS={glow:'Neon-Leuchten',lift:'Schweben',outline:'Kontur',tilt:'Leicht kippen',none:'Ohne Effekt'};
 export const VISUALIZER_THEMES={
   trinity:{name:'Trinity Pulse',color1:'#2eff80',color2:'#bd33ff',background:'#0c0913'},
@@ -11,7 +12,7 @@ const color=(value,fallback)=>/^#[a-f0-9]{6}$/i.test(value||'')?value:fallback;
 const bounded=(value,min,max,fallback)=>Number.isFinite(Number(value))?Math.min(max,Math.max(min,Number(value))):fallback;
 export function normalizeAppearance(input={}){
   const v=input?.visualizer||{},base=VISUALIZER_THEMES.trinity;
-  return {hover:HOVER_EFFECTS[input?.hover]?input.hover:'glow',autoListen:input?.autoListen!==false,visualizer:{
+  return {hover:HOVER_EFFECTS[input?.hover]?input.hover:'glow',autoListen:input?.autoListen!==false,player:normalizePlayer(input?.player),equalizer:normalizeEqualizer(input?.equalizer),visualizer:{
     mode:VISUALIZER_MODES[v.mode]?v.mode:'bars',theme:VISUALIZER_THEMES[v.theme]||v.theme==='custom'?v.theme:'trinity',
     color1:color(v.color1,base.color1),color2:color(v.color2,base.color2),background:color(v.background,base.background),
     sensitivity:bounded(v.sensitivity,.5,3,1.25),glow:bounded(v.glow,0,30,14)

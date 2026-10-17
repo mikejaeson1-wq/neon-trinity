@@ -145,3 +145,30 @@ Spotify begrenzt den Abruf von Titellisten auf eigene und kollaborative Playlist
 Das Studio lädt keine Spotify-Audiodateien herunter. Der Audio-Visualizer und die eigene synchrone Discord-Hörsession arbeiten mit euren MP3s. Spotify-Musik läuft über Spotify Connect. Beim Start aus dem Spotify-Bereich pausiert der MP3-Player und eine eigene Hörsession endet, damit nicht beide Musikquellen gleichzeitig spielen.
 
 **Verbindung entfernen** löscht die im Studio gespeicherte Spotify-Sitzung des aktuellen Kontos. Zusätzlich kannst du unter https://www.spotify.com/account/apps/ die App-Berechtigung in Spotify widerrufen. Die Spotify-Entwickler-App und ihre Client-ID müssen einmalig vom App-Inhaber eingerichtet werden; ohne diese ID lässt sich die Anmeldung nicht live abschließen.
+
+
+## 14. Gemeinsamer Player, Miniplayer und Equalizer
+
+Ab Version 0.6 zeigt der untere Player immer die gewählte Musikquelle. Bei Spotify stehen Titel, Interpret, Cover und Wiedergabefortschritt direkt dort. Play/Pause, voriger/nächster Titel, Position, Lautstärke, Zufall und Wiederholung steuern dein eigenes Spotify-Konto auf dem laufenden Spotify-Connect-Gerät. Die Steuerung bleibt beim Wechsel zu einem anderen Studio-Bereich verfügbar.
+
+Unter Player & Equalizer wählst du fünf Player-Skins und drei Ansichten: Classic Rack, Cover Player oder Kompakt. Über das Miniplayer-Symbol unten rechts öffnest du ein kleines, frei verschiebbares Fenster über anderen Anwendungen. Das Studio hält die Wiedergabe im Hintergrund aufrecht. Über ◈ im Miniplayer lassen sich Skin und Ansicht direkt ändern; über ↗ kehrst du zum Studio zurück.
+
+EQ öffnet den 10-Band-Equalizer. Schalte ihn ein, wähle Neutral, Rock, Bass, Stimmen, Electronic oder Nacht, oder stelle die zehn Frequenzbänder selbst ein. Vorverstärkung, Balance und automatische Pegelreserve helfen bei der Klangregelung. Die Einstellungen bleiben auf diesem Gerät. Der Equalizer bearbeitet Band-Songs und private lokale MP3s. Spotify Connect gibt den Ton in Spotify aus: Dafür verwendest du in Spotify unter Einstellungen → Wiedergabe den dortigen Equalizer.
+
+## 15. Eigene öffentliche Profile
+
+Öffne Profile im Studio. Als Dex, Nix oder Jax bearbeitest du nur dein eigenes Profil: Profilname, Beschreibung und eigenes PNG-, JPG- oder WebP-Bild bis 8 MiB. Das Bild wird mittig quadratisch zugeschnitten; prüfe die Vorschau und klicke Profil öffentlich speichern. Bilder kannst du dort ersetzen oder entfernen.
+
+Die Profile sind ohne Installation unter https://mikejaeson1-wq.github.io/neon-trinity/profile.html erreichbar. Über das Teilen-Symbol kopierst du den persönlichen Link von Dex, Nix oder Jax. Besucher sehen das öffentliche Profil und die veröffentlichten Bandalben. Spotify-Playlists, Spotify-Höraktivität, persönliche Bandplaylists und private lokale Songs bleiben davon getrennt.
+
+Zum Folgen und Liken melden sich Besucher auf der Profilwebsite mit Discord an. Es ist keine Freischaltung als Bandmitglied nötig; die interne Bandmediathek bleibt für Besucher gesperrt. Pro Discord-Konto gibt es je Profil einen Follow und einen Like. Erneutes Klicken nimmt die Reaktion zurück. Meine Likes und Abos entfernen löscht alle eigenen Reaktionen. Folgen speichert das Abo; es versendet keine Nachrichten oder Benachrichtigungen.
+
+## 16. Besucher-Anmeldung einmalig freischalten
+
+Dex ergänzt in https://supabase.com/dashboard/project/xyhkpwhfgjamssojjzbu/auth/url-configuration unter Redirect URLs genau diesen zusätzlichen Eintrag:
+
+https://mikejaeson1-wq.github.io/neon-trinity/profile.html
+
+Die bestehenden Einträge für die Windows-App und die Browser-Version bleiben erhalten. Die Discord-Redirect-Adresse ist weiterhin die bestehende Supabase-Callback-Adresse; in der Discord-App muss dafür keine neue Callback-Adresse angelegt werden.
+
+Danach testen: Profilwebsite öffnen → Mit Discord anmelden → Rückkehr zur Profilwebsite → Folgen oder Gefällt mir. Ohne den zusätzlichen Supabase-Eintrag kann die Anmeldung stattdessen zur bisherigen Studio-Adresse zurückführen.

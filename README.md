@@ -1,4 +1,4 @@
-# Neon Trinity Studio 0.5.0 · Supabase Edition
+# Neon Trinity Studio 0.6.0 · Supabase Edition
 
 Windows music studio for Dex, Nix and Jax. Shared songs, albums, artwork, playlists and performances live in the dedicated Supabase project. Authentication uses Discord OAuth with PKCE. Only three explicitly allowed Discord provider identities can access the band's data.
 
@@ -6,7 +6,7 @@ For normal use, open the Windows package and follow `SUPABASE-START.html`. Node.
 
 ## Development
 
-Node.js 22 or newer. Install dependencies with the committed lockfile (`pnpm install --frozen-lockfile`). Run `pnpm start`. The optional public website is static HTML/CSS/JS. `pnpm test` runs the unit and integration checks; `pnpm build:win` builds the portable Windows executable. `pnpm build:web` builds the web studio. The scripts bundle the pinned Supabase browser SDK locally.
+Node.js 22 or newer. Install dependencies with the committed lockfile (`pnpm install --frozen-lockfile`). Run `pnpm start`. The optional public website is static HTML/CSS/JS. `pnpm test` runs the unit and integration checks; `pnpm build:win` builds the Windows NSIS installer. `pnpm build:web` builds the web studio. The scripts bundle the pinned Supabase browser SDK locally.
 
 ## Data and access
 
@@ -27,3 +27,21 @@ Nix und Jax laden den Installer über https://mikejaeson1-wq.github.io/neon-trin
 Eine neue Versionsnummer in package.json auf main startet den Windows-Release-Workflow. Er testet das Studio, baut den NSIS-Installer, prüft dessen SHA-512-Prüfsumme und veröffentlicht Installer, Blockmap und latest.yml zusammen in einem GitHub Release. Ein bereits veröffentlichtes Release wird nicht verändert.
 
 Spotify Premium is optional: the Windows studio uses PKCE and encrypted per-account credentials to browse playlists and control an official Spotify Connect device. Dex configures the public client ID once under Spotify; no client secret is used. See docs/TEAM-START.md for the registered loopback redirect and account allowlist.
+
+
+## Player and public profiles in 0.6
+
+The dock and floating Winamp-style miniplayer share one source-aware transport.
+Spotify metadata and commands stay bound to the current account and active
+Connect device. Five skins and three layouts are device preferences. The
+10-band Web Audio equalizer uses the existing MP3 audio graph, with gain
+headroom, balance and a limiter; Spotify Connect audio remains in Spotify and
+uses Spotify's own equalizer.
+
+Public artist profiles live in nt_profiles. Only the allowlisted Discord
+identity for the matching alias can edit a profile or upload its avatar.
+Public counters are updated only by a private trigger; visitors can read
+counts but only their own account's reactions. Follows and likes are unique
+per Discord account, artist and reaction type. The public profile page uses
+its own PKCE browser session, without installing the Studio or exposing the
+band catalog. Its exact Supabase redirect URL is documented in TEAM-START.md.

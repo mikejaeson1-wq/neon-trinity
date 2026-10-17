@@ -1,13 +1,23 @@
-# Neon Trinity Studio 0.5.0
+# Neon Trinity Studio 0.6.0
 
-- Eigene private lokale Mediathek für persönliche MP3s und Cover, getrennt pro Discord-Konto auf dem Gerät.
-- Lokale Playlists für private Songs und Band-Songs; private Dateien bleiben aus Teamsynchronisierung, Bandplaylists, Albumfreigaben und Discord-Aktivitäten ausgeschlossen.
-- Automatische Hörsessions für Band-Songs mit „Mithören“-Button in Discord.
-- Gastplayer ohne Anmeldung und Studio-Links, die die installierte App minimiert öffnen.
-- Gemeinsame Wiedergabe mit Zeitabgleich, sanfter Driftkorrektur und Wiederaufnahme nach Verbindungsproblemen.
-- Sechs zusätzliche Studio-Themes, fünf wählbare Hover-Effekte und vier Audio-Visualizer-Darstellungen.
-- Fünf Visualizer-Farbthemen sowie eigene Farben, Empfindlichkeit und Leuchten.
-- Persönliche Backups enthalten keine lokalen MP3s anderer auf dem Gerät verwendeter Discord-Konten.
-- Spotify Premium: sichere Kontoanbindung, eigene Playlists und Titellisten sowie Wiedergabesteuerung über Spotify Connect. Einmalige Spotify-App-Einrichtung durch Dex; Nix und Jax erhalten die öffentliche Client-ID automatisch.
+Spotify ist jetzt Teil des normalen Studio-Players. Titel, Interpret, Cover,
+Position und Lautstärke erscheinen unten im Studio und im Miniplayer – auch
+wenn du einen anderen Bereich geöffnet hast. Play/Pause, Titelsprung, Suchen,
+Zufall und Wiederholung steuern dein eigenes Spotify-Connect-Gerät.
 
-Bereits installierte Setup-Versionen erhalten 0.5.0 unter Einstellungen → Studio & Updates. Private MP3s bitte über „Privat & lokal“ importieren. Für automatische Discord-Aktivitäten müssen Discord Desktop und die Aktivitätsfreigabe aktiv sein. Browsergäste starten den Ton einmal per Klick; für Studio-Links kann Windows bzw. der Browser eine Bestätigung anzeigen.
+Der frei verschiebbare Miniplayer hat fünf Skins und drei Ansichten:
+Classic Rack, Cover Player und Kompakt. Ein 10-Band-Equalizer mit
+Voreinstellungen, Vorverstärkung und Balance formt Band-Songs und private
+lokale MP3s. Für Spotify wird die Klangregelung in Spotify verwendet.
+
+Dex, Nix und Jax bekommen eigene öffentliche Profile mit Profilbild,
+Profilname und Beschreibung. Jeder bearbeitet nur sein eigenes Profil.
+Besucher können die Profile und veröffentlichte Musik ohne Studio ansehen.
+Nach Discord-Anmeldung können sie folgen und liken. Reaktionen lassen sich
+zurücknehmen; private Musik und Spotify-Playlists erscheinen nie im Profil.
+
+Einmalige Ergänzung für Besucher-Anmeldung: In Supabase unter
+Authentication → URL Configuration → Redirect URLs hinzufügen:
+https://mikejaeson1-wq.github.io/neon-trinity/profile.html
+
+Updates werden im Studio unter Einstellungen → Studio & Updates angeboten.

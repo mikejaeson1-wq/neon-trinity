@@ -6,7 +6,8 @@ const { validRequest, githubRequest } = require('./service.cjs');
 const {DiscordPresence}=require('./discord.cjs');
 const {DesktopCloud}=require('./team.cjs');
 const {roomFromArguments,listeningRoomFromURL}=require('./deep-link.cjs');
-const {DesktopSpotify}=require('./spotify.cjs');
+const {DesktopSpotify,imageURL}=require('./spotify.cjs');
+let playerSettings;
 const {StudioUpdater}=require('./updates.cjs');
 const {autoUpdater}=require('electron-updater');
 protocol.registerSchemesAsPrivileged([{scheme:'ntapp',privileges:{standard:true,secure:true,supportFetchAPI:true,corsEnabled:true,stream:true}}]);
@@ -15,7 +16,7 @@ const primaryInstance=app.requestSingleInstanceLock();
 if(!primaryInstance)app.quit();
 let window,studioUpdater,pendingRoom=roomFromArguments(process.argv);
 let token='';
-let miniWindow,quitting=false,playerState={paused:true};
+let miniSettingsOpen=false,miniWindow,quitting=false,playerState={paused:true};
 const team=new DesktopCloud({app,safeStorage,shell});
 const spotify=new DesktopSpotify({app,safeStorage,shell});
 const presence=new DiscordPresence(message=>{if(window&&!window.isDestroyed())window.webContents.send('discord-status',message);});
@@ -26,7 +27,7 @@ function trusted(event){const u=event.senderFrame&&new URL(event.senderFrame.url
 if(primaryInstance)app.whenReady().then(async()=>{
   if(app.isPackaged)app.setAsDefaultProtocolClient('neontrinity');
   token=await readToken();
-  await team.load();await spotify.load();
+  playerSettings=await import('../app/player-settings.mjs');await team.load();await spotify.load();
   if(team.config.discordClientId)presence.configure(team.config.discordClientId);
   const appRoot=path.resolve(__dirname,'../app');
   protocol.handle('ntapp',request=>{
@@ -68,8 +69,23 @@ if(primaryInstance)app.whenReady().then(async()=>{
   handle('cloud:poll-login',()=>team.pollLogin());
   handle('cloud:cancel-login',()=>team.cancelLogin());
   handle('discord:configure',async id=>{presence.configure(id);team.config.discordClientId=id;await team.save();return true;});
-  handle('player:update',state=>{playerState={title:String(state.title||'').slice(0,160),artist:String(state.artist||'Neon Trinity').slice(0,120),position:Math.max(0,Number(state.position)||0),duration:Math.max(0,Number(state.duration)||0),paused:!!state.paused,private:!!state.private,roomUrl:typeof state.roomUrl==='string'?state.roomUrl.slice(0,1000):''};if(miniWindow&&!miniWindow.isDestroyed())miniWindow.webContents.send('player-state',playerState);presence.update(playerState);return true;});
-  handle('player:command',command=>{if(!['toggle','next','previous','seek'].includes(command?.command))throw new Error('Unbekannter Player-Befehl.');window.webContents.send('player-command',command);return true;});
+  handle('player:update',state=>{
+    const bounded=(n,max=86400)=>Math.max(0,Math.min(max,Number(n)||0));
+    const source=['studio','local','spotify','listen'].includes(state.source)?state.source:'studio';
+    playerState={title:String(state.title||'').slice(0,180),artist:String(state.artist||'Neon Trinity').slice(0,160),position:bounded(state.position),duration:bounded(state.duration),paused:!!state.paused,source,private:!!state.private||source==='spotify'||source==='local',roomUrl:source==='studio'||source==='listen'?String(state.roomUrl||'').slice(0,1000):'',volume:state.volume==null?null:bounded(state.volume,1),image:imageURL(state.image)||(/^blob:ntapp:\/\/studio\/[a-f0-9-]{36}$/i.test(state.image||'')?state.image:''),device:String(state.device||'').slice(0,160),shuffle:!!state.shuffle,repeat:['off','context','track'].includes(state.repeat)?state.repeat:'off',appearance:playerSettings.normalizePlayer(state.appearance),equalizer:playerSettings.normalizeEqualizer(state.equalizer),spectrum:source==='spotify'?[]:(Array.isArray(state.spectrum)?state.spectrum:[]).slice(0,24).map(n=>bounded(n,100))};
+    for(const key of ['canToggle','canNext','canPrevious','canSeek','canVolume','canShuffle','canRepeat'])playerState[key]=state[key]!==false;
+    if(miniWindow&&!miniWindow.isDestroyed()){miniWindow.webContents.send('player-state',playerState);resizeMini();}
+    presence.update(playerState);return true;
+  });
+  handle('player:command',command=>{
+    if(!['toggle','next','previous','seek','volume','shuffle','repeat','appearance','equalizer','open-spotify'].includes(command?.command))throw new Error('Unbekannter Player-Befehl.');
+    const message={command:command.command};
+    if(['seek','volume'].includes(command.command)){if(!Number.isFinite(command.value))throw new Error('Ungültiger Player-Wert.');message.value=Math.max(0,Math.min(1,command.value));}
+    if(command.command==='appearance'){const value=command.value||{};message.value={};for(const key of ['skin','layout','equalizerOpen'])if(Object.hasOwn(value,key))message.value[key]=playerSettings.normalizePlayer({...playerState.appearance,[key]:value[key]})[key];}
+    if(command.command==='equalizer')message.value=playerSettings.normalizeEqualizer(command.value);
+    window.webContents.send('player-command',message);return true;
+  });
+  handle('player:mini-size',input=>{miniSettingsOpen=input?.settings===true;resizeMini();return true;});
   handle('listen:pending',()=>{const room=pendingRoom;pendingRoom=null;return room;});
   handle('listen:background',()=>{window.minimize();return true;});
   handle('player:mini',()=>{openMini();return true;});
@@ -101,9 +117,11 @@ app.on('second-instance',(_event,argv)=>{const room=roomFromArguments(argv);if(r
 app.on('open-url',(event,url)=>{const room=listeningRoomFromURL(url);if(room){event.preventDefault();receiveListeningRoom(room);}});
 app.on('window-all-closed',()=>{if(process.platform!=='darwin')app.quit();});
 
-function openMini(){if(miniWindow&&!miniWindow.isDestroyed()){miniWindow.show();miniWindow.focus();return;}miniWindow=new BrowserWindow({width:390,height:205,minWidth:360,minHeight:200,resizable:false,frame:false,alwaysOnTop:true,skipTaskbar:true,title:'Neon Trinity Miniplayer',backgroundColor:'#100919',webPreferences:{preload:path.join(__dirname,'preload.cjs'),contextIsolation:true,nodeIntegration:false,sandbox:true,webSecurity:true}});miniWindow.webContents.setWindowOpenHandler(()=>({action:'deny'}));miniWindow.webContents.on('will-navigate',event=>event.preventDefault());miniWindow.webContents.on('did-finish-load',()=>miniWindow.webContents.send('player-state',playerState));miniWindow.on('closed',()=>{miniWindow=null;if(!quitting&&window&&!window.isDestroyed()&&!window.isVisible())window.show();});miniWindow.loadURL('ntapp://studio/mini.html');}
+function openMini(){if(miniWindow&&!miniWindow.isDestroyed()){miniWindow.show();miniWindow.focus();return;}miniSettingsOpen=false;miniWindow=new BrowserWindow({width:430,height:276,minWidth:430,minHeight:170,resizable:false,frame:false,alwaysOnTop:true,skipTaskbar:true,title:'Neon Trinity Miniplayer',backgroundColor:'#100919',webPreferences:{preload:path.join(__dirname,'preload.cjs'),contextIsolation:true,nodeIntegration:false,sandbox:true,webSecurity:true}});miniWindow.webContents.setWindowOpenHandler(()=>({action:'deny'}));miniWindow.webContents.on('will-navigate',event=>event.preventDefault());miniWindow.webContents.on('did-finish-load',()=>miniWindow.webContents.send('player-state',playerState));miniWindow.on('closed',()=>{miniWindow=null;if(!quitting&&window&&!window.isDestroyed()&&!window.isVisible())window.show();});miniWindow.loadURL('ntapp://studio/mini.html');resizeMini();}
 app.on('before-quit',()=>{quitting=true;studioUpdater?.stop();presence.close();spotify.cancelLogin().catch(()=>{});team.cancelLogin().catch(()=>{});});
 
 function spotifyOwner(expected){
   try{const session=JSON.parse(team.getItem('neon-trinity-supabase-auth')||'null'),claims=JSON.parse(Buffer.from(session.access_token.split('.')[1],'base64url').toString());if(claims.iss!=='https://xyhkpwhfgjamssojjzbu.supabase.co/auth/v1'||!/^([a-f0-9]{8}-)([a-f0-9]{4}-){3}[a-f0-9]{12}$/i.test(claims.sub)||session.user?.id&&session.user.id!==claims.sub||expected!==claims.sub)throw new Error();return claims.sub;}catch{throw new Error('Bitte zuerst mit Discord im Studio anmelden.');}
 }
+
+function resizeMini(){if(!miniWindow||miniWindow.isDestroyed())return;const height=(playerState.appearance?.layout==='compact'?180:276)+(miniSettingsOpen?60:0)+(playerState.appearance?.equalizerOpen?256:0);const [width,current]=miniWindow.getSize();if(width!==430||current!==height)miniWindow.setSize(430,height);}
