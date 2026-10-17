@@ -2,7 +2,7 @@ name: Windows-Installer veröffentlichen
 on:
   push:
     branches: [main]
-    paths: [package.json, .github/workflows/windows-release.yml]
+    paths: [package.json, pnpm-lock.yaml, scripts/**, .github/workflows/windows-release.yml]
   workflow_dispatch:
 permissions:
   contents: read
