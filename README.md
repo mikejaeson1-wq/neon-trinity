@@ -1,4 +1,4 @@
-# Neon Trinity Studio 0.7.0 · Supabase Edition
+# Neon Trinity Studio 0.7.1 · Supabase Edition
 
 Windows music studio for Dex, Nix and Jax. Shared songs, albums, artwork, playlists and performances live in the dedicated Supabase project. Authentication uses Discord OAuth with PKCE. Only three explicitly allowed Discord provider identities can access the band's data.
 

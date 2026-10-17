@@ -1,4 +1,4 @@
-# Neon Trinity Studio 0.7.0
+# Neon Trinity Studio 0.7.1
 
 Dex, Nix und Jax wählen ihre eigene öffentliche Profilfarbe. Sie erscheint
 für alle im Studio und auf der Profilwebsite. Die Banner haben eigene

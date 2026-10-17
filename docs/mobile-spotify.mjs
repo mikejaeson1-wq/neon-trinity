@@ -78,7 +78,7 @@ export class MobileSpotify{
   async load(more=false){
     if(this.loading)return;const generation=this.generation;this.loading=true;this.onChange();try{
       const offset=more?this.next:0;if(offset===null)return;const [profile,page]=await Promise.all([this.profile?Promise.resolve(this.profile):this.api('/me'),this.api('/me/playlists?limit=50&offset='+bounded(offset,100000))]);this.assertOwner(generation);
-      this.profile={name:String(profile.display_name||'Dein Spotify').slice(0,160),product:profile.product||''};
+      this.profile={name:String(profile.display_name||profile.name||'Dein Spotify').slice(0,160),product:profile.product||''};
       const rows=(page.items||[]).filter(p=>spotifyId(p?.id)).map(p=>({id:p.id,name:String(p.name||'Playlist').slice(0,180),image:spotifyImage(p.images?.[0]?.url),owner:String(p.owner?.display_name||'').slice(0,160)}));this.playlists=more?[...this.playlists,...rows.filter(p=>!this.playlists.some(a=>a.id===p.id))]:rows;this.next=page.next?Number(offset)+(page.items?.length||50):null;this.message='';
     }finally{if(generation===this.generation){this.loading=false;this.onChange();}}
   }
