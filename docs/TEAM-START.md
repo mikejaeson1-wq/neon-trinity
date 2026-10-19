@@ -206,6 +206,25 @@ Zum Hören braucht die Handy-App Internet. Sie speichert ihre Oberfläche für e
 
 Studio → Team & Discord → Discord neu verbinden stellt die Verbindung auch mit derselben App-ID frisch her. Verbindung & Sichtbarkeit prüfen zeigt, ob Discord Desktop antwortet, welches Konto verbunden ist und wann Discord eine Aktivität bestätigt hat. Die Verbindung hat jetzt einen Anmelde-Timeout und versucht es nach einer Unterbrechung automatisch erneut. Das Bandlogo wird als Bild der Aktivität mitgesendet, ohne dass jedes Mitglied eine eigene Discord-App anlegen muss.
 
-Discord Desktop öffnen und dort mit demselben Konto wie im Studio anmelden. Unter Discord → Einstellungen → Aktivitätsfreigabe das Teilen von Aktivitäten mit Freunden und auf Servern erlauben. Unter Registrierte Spiele darf Neon Trinity nicht ausgeblendet sein; die Datenschutz-Einstellungen des betreffenden Servers müssen den Aktivitätsstatus ebenfalls erlauben. Studio und Discord unter demselben Windows-Benutzer starten. Nur das Discord-Browserfenster reicht für die lokale Studio-Aktivität nicht aus.
+Discord Desktop öffnen und dort mit demselben Konto wie im Studio anmelden. Unter Discord → Einstellungen → Aktivitätsfreigabe das Teilen von Aktivitäten mit Freunden und auf Servern erlauben. die Datenschutz-Einstellungen des betreffenden Servers müssen den Aktivitätsstatus ebenfalls erlauben. Studio und Discord unter demselben Windows-Benutzer starten. Nur das Discord-Browserfenster reicht für die lokale Studio-Aktivität nicht aus.
 
 Discords Bestätigung zeigt, dass die Aktivität angenommen wurde. Sichtbarkeit für andere hängt weiterhin von den persönlichen Discord-Einstellungen ab und kann vom Studio nicht erzwungen werden. Private lokale Songs und Spotify werden vom Studio weiterhin nicht als eigene öffentliche Aktivität übertragen.
+
+
+## 20. Song- und Album-Links für die Conan-Musikbox
+
+Ab Version 0.8: Klicke im Studio mit der rechten Maustaste auf einen Band-Song, eine Albumkarte oder den Albumkopf und wähle Musikbox-Link kopieren. Alternativ den Eintrag mit Tab fokussieren und Umschalt+F10 drücken. Die MP3-URL wird in die Zwischenablage kopiert und zusätzlich angezeigt. Füge sie in Conan in das URL-Feld der Musikbox ein. Ein GitHub-Token ist dafür nicht nötig.
+
+Beim ersten Teilen eines Songs stellt das Studio dessen MP3 in einem separaten Supabase-Speicher bereit. Bei einem Album erstellt es einmalig eine einzige durchgehende Stereo-MP3 in Albumreihenfolge. Das kann beim ersten Mal etwas dauern; die Fortschrittsanzeige lässt sich abbrechen. Der Klang wird direkt aus den Originaldateien erzeugt, unabhängig von den persönlichen Equalizer-Einstellungen. Danach verwendet das gesamte Trio für dieselbe Audiofassung denselben Link.
+
+Die URL endet auf .mp3, liefert direkt Audio ohne Login und läuft nicht automatisch ab. Eine normale Album-Webseite ist für das URL-Feld einer MP3-Musikbox nicht geeignet. Geänderte Audiodateien oder eine geänderte Albumreihenfolge bekommen einen neuen Link; alte Links bleiben als eigene Audiofassung bestehen. Über Rechtsklick → Geteilte MP3-Links entfernen kannst du alle Musikbox-Fassungen dieses Songs bzw. Albums entfernen. Bereits zwischengespeicherte Kopien können kurz weiterlaufen.
+
+Nur die freigeschalteten Bandkonten können solche Links erstellen oder entfernen. Wer die URL kennt, kann die MP3 abspielen. Private lokale Songs und Spotify werden dafür nicht hochgeladen. Die Freigabe als Musikbox-MP3 veröffentlicht das Album nicht zusätzlich in der öffentlichen Albumübersicht. Zum Vorbereiten muss das Studio online sein; die Wiedergabe im Spiel funktioniert anschließend unabhängig davon, ob euer Studio läuft.
+
+Album-MP3s werden mit 44,1 kHz und normalerweise 128 kbit/s erzeugt. Bei langen Alben reduziert das Studio die Bitrate, damit die Datei innerhalb der 48-MiB-Grenze bleibt. Sehr lange Alben müssen gegebenenfalls in kleinere Alben aufgeteilt werden. Ob eure konkrete Conan-Mod den Link abspielt, lässt sich abschließend nur im Spiel prüfen.
+
+## 21. Discord als Hör-Aktivität
+
+Das Studio sendet laufende Bandmusik ausdrücklich als Listening / Hört, niemals als Playing / Spielt. Bei Pause, Leerlauf und privaten Quellen wird die eigene Aktivität entfernt. Titel, Interpret, Fortschritt, Bandlogo und gegebenenfalls der Mithör-Link werden zusammen mit der Hör-Aktivität übertragen. Die Verbindungsprüfung unter Team & Discord zeigt jetzt sowohl den gesendeten als auch den tatsächlich von Discord zurückgemeldeten Typ. Wenn Discord keinen Typ zurückgibt, wird das ausdrücklich angezeigt.
+
+Falls zusätzlich Spielt Neon Trinity erscheint, kann ein zuvor manuell hinzugefügter Eintrag der automatischen Spielerkennung aktiv sein. Beende das Studio, öffne Discord → Einstellungen → Registrierte Spiele und entferne den alten Studio-Eintrag. Starte das Studio erneut und wähle Team & Discord → Discord neu verbinden. Die automatische Spielerkennung und persönliche Aktivitätsfreigabe werden von Discord verwaltet und lassen sich vom Studio nicht zwangsweise umstellen. Die integrierte offizielle Spotify-Kontoverbindung von Discord bleibt eine separate Funktion.

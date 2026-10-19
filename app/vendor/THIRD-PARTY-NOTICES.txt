@@ -1,0 +1,6 @@
+@breezystack/lamejs 1.2.7
+License: LGPL-3.0 (see mp3-encoder.LICENSE).
+Upstream source: https://github.com/shijinyu/lamejs/tree/1fb0ef5fa177413107e2e107d054a9b994e3f79c
+Corresponding source and build files are included in lamejs-1.2.7-source.zip.
+The bundled mp3-encoder.mjs module can be replaced or rebuilt with scripts/build-vendor.mjs.
+No changes were made to the upstream encoder.

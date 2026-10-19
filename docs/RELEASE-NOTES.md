@@ -1,30 +1,17 @@
-# Neon Trinity Studio 0.7.1
+# Neon Trinity Studio 0.8.0
 
-Dex, Nix und Jax wählen ihre eigene öffentliche Profilfarbe. Sie erscheint
-für alle im Studio und auf der Profilwebsite. Die Banner haben eigene
-Cyberpunk-Schriftzüge für DEX, NIX und JAX.
+Songs und Alben erhalten per Rechtsklick → Musikbox-Link kopieren eine direkte
+MP3-URL für die Conan-Musikbox. Songs werden beim ersten Teilen bereitgestellt;
+Alben werden einmalig zu einer durchgehenden MP3 in Albumreihenfolge encodiert.
+Weitere Aufrufe verwenden denselben Link für dieselbe Audiofassung.
 
-PL im Miniplayer öffnet die anklickbare Playlist der aktuellen Musikquelle.
-Spotify-Titellisten lassen sich seitenweise laden. Der klassische Skin und
-die vier bisherigen Alternativen bleiben. Neu: Cyberware Head, Capybara FM,
-Glacier Wolf, Black Raven, Cassette Bot und Cosmic Jellyfish. Das Fenster
-passt seine Höhe an Playlist, Equalizer und Einstellungen an.
+Die Links funktionieren ohne Anmeldung, laufen nicht automatisch ab und lassen
+sich über Rechtsklick → Geteilte MP3-Links entfernen wieder entfernen. Private
+lokale Musik und Spotify bleiben ausgeschlossen. Ein GitHub-Token ist nicht nötig.
 
-Handy-App im Studio zeigt den Installations-QR-Code für Android und iPhone.
-Die kleine Web-App spielt Bandmusik, Alben, Bandplaylists, persönliche
-Bandplaylists und das eigene Spotify Premium. Öffentliche Alben brauchen
-keine Anmeldung. Für die interne Mediathek nutzt jeder sein Discord-Konto.
-Persönliche Spotify-Playlists bleiben für andere unsichtbar.
+Discord erhält ausdrücklich eine Hört-Aktivität für laufende Musik. Bei Pause
+oder Leerlauf wird die Studio-Aktivität entfernt. Die Verbindungsprüfung zeigt,
+welchen Aktivitätstyp das Studio sendet und welchen Discord tatsächlich bestätigt.
+Eine separat eingerichtete automatische Spielerkennung verwaltet Discord selbst.
 
-Einmalig für Spotify auf dem Handy: Im vorhandenen Spotify Developer
-Dashboard unter Redirect URIs zusätzlich speichern und Web Playback SDK
-aktivieren:
-https://mikejaeson1-wq.github.io/neon-trinity/mobile.html
-
-Discord-Aktivitäten senden das Bandlogo mit. Eine hängende Anmeldung läuft
-jetzt aus und verbindet sich automatisch erneut. Discord neu verbinden
-funktioniert auch mit derselben App-ID. Die Verbindungsprüfung zeigt das
-verbundene Discord-Konto und bestätigte Übertragungen. Bei Nix und Jax muss
-Discord Desktop laufen und die persönliche Aktivitätsfreigabe erlaubt sein.
-
-Updates: Einstellungen → Studio & Updates → Prüfen, herunterladen und installieren.
+Update: Einstellungen → Studio & Updates → Prüfen, herunterladen und installieren.

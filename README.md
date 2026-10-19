@@ -1,4 +1,4 @@
-# Neon Trinity Studio 0.7.1 · Supabase Edition
+# Neon Trinity Studio 0.8.0 · Supabase Edition
 
 Windows music studio for Dex, Nix and Jax. Shared songs, albums, artwork, playlists and performances live in the dedicated Supabase project. Authentication uses Discord OAuth with PKCE. Only three explicitly allowed Discord provider identities can access the band's data.
 
@@ -52,3 +52,12 @@ band catalog. Its exact Supabase redirect URL is documented in TEAM-START.md.
 The studio's Handy-App screen contains an offline-generated QR code for the public mobile.html PWA on the band's existing GitHub Pages site. It supports public releases, Discord-authorized band music and personal band playlists, plus an account-bound Spotify Premium Web Playback SDK player. The existing profile.html Supabase callback returns mobile OAuth to a fixed mobile.html target. Spotify PKCE uses one additional exact mobile.html redirect; tokens are sessionStorage-only, owner-bound and excluded from the service-worker cache. The service worker handles a fixed app-shell allowlist and never intercepts OAuth queries, APIs or media. Mobile playback and background behavior still need verification on the actual target phones.
 
 Public profile accent_color is constrained to six-digit hex and has an owner-only column update grant under existing alias RLS. A separate migration is included for existing installations. New Cyberpunk name artwork and six mascot skins are source assets; the five existing skins remain. The mini-player playlist uses the same validated queue and playback source as the studio, with paged private Spotify items. Discord RPC now has a handshake timeout, forced reconnect, connection-generation guards, account diagnostics and acknowledgement status; its activity uses the public band icon URL. Discord's own activity privacy settings still control visibility.
+
+
+## Conan music-box links in 0.8
+
+The studio context menu explicitly publishes immutable MP3 snapshots of a selected band song or album to the separate nt-musicbox Storage bucket. The private nt-media bucket is unchanged. nt_musicbox_links has band-only RLS, immutable source fingerprints and a random UUID per audio revision. Storage inserts require a reserved object path; public playback uses a direct .mp3 URL with native Range support, no redirect, and no expiring JWT. A menu action removes the public objects before deleting their link records. Spotify and device-local music are excluded.
+
+Albums are decoded one track at a time at 44.1 kHz and encoded into one continuous stereo MP3 using the pinned LGPL-3.0 @breezystack/lamejs package. Its source and license are included in the distribution; the package is bundled locally. A module worker handles encoding with a yielding in-process fallback. The upload supports AbortSignal, snapshots are bound to the verified Studio account, and publication is checked before exposing the URL.
+
+Discord emits Listening type 2 with a song-oriented display type, clears paused/idle presence and exposes the acknowledged activity type without inventing a confirmation when the field is absent. Automatic game detection in a user's Discord client remains outside the app's control.
