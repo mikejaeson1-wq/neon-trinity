@@ -13,7 +13,7 @@ export function musicboxSelection(catalog,kind,id){
 }
 export async function musicboxFingerprint(selection){const {kind,tracks,assets}=selection;const source=JSON.stringify({version:1,kind,encoder:kind==='album'?'lamejs-1.2.7-44100-stereo':'original',tracks:tracks.map(t=>({id:t.id,blobId:t.blobId,sha:assets.find(a=>a.id===t.blobId)?.sha||'',duration:Number(t.duration)||0}))});return [...new Uint8Array(await crypto.subtle.digest('SHA-256',new TextEncoder().encode(source)))].map(n=>n.toString(16).padStart(2,'0')).join('');}
 export class MusicboxLinks{
- constructor({client,getOwner,getCatalog,getBlob,ensureSynced=async()=>{},makeAlbum,fetcher=globalThis.fetch}){Object.assign(this,{client,getOwner,getCatalog,getBlob,ensureSynced,makeAlbum,fetcher});}
+ constructor({client,getOwner,getCatalog,getBlob,ensureSynced=async()=>{},makeAlbum,fetcher=globalThis.fetch.bind(globalThis)}){Object.assign(this,{client,getOwner,getCatalog,getBlob,ensureSynced,makeAlbum,fetcher});}
  guard(owner,signal){if(signal?.aborted)throw new DOMException('Vorgang abgebrochen.','AbortError');if(!owner||this.getOwner()?.id!==owner)throw new Error('Das angemeldete Konto hat sich geändert.');}
  async exists(url,signal){try{const r=await this.fetcher(url,{method:'HEAD',cache:'no-store',signal});if(r.ok){const size=Number(r.headers.get('content-length'));return Number.isSafeInteger(size)&&size>0&&size<=MUSICBOX_LIMIT?size:0;}if(r.status===404)return 0;throw new Error('Der MP3-Link konnte nicht geprüft werden.');}catch(e){if(signal?.aborted)throw e;throw new Error(e.message||'Musikbox-Speicher nicht erreichbar.');}}
  async create(kind,id,{signal,onProgress=()=>{}}={}){

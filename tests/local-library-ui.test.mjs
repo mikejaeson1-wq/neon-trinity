@@ -20,6 +20,7 @@ await import('../app/app.mjs');const {loadState}=await import('../app/db.mjs');
 const click=selector=>{const el=document.querySelector(selector);assert.ok(el,selector);el.dispatchEvent(new window.Event('click',{bubbles:true}));};
 const navigate=route=>{location.hash='#'+route;window.dispatchEvent(new window.Event('hashchange'));};
 const settle=async()=>new Promise(r=>realTimeout(r,20));
+const until=async predicate=>{for(let attempt=0;attempt<250;attempt++){if(predicate())return;await settle();}assert.ok(predicate(),'Die lokale Wiedergabe wurde nicht gestartet.');};
 const selectValue=(select,value)=>select.querySelectorAll('option').forEach(o=>o.selected=o.value===value);
 test('Privater Import, lokale Playlist und Player bleiben auf das eigene Konto begrenzt',async()=>{
  await document.querySelector('#local-audio-files').onchange({target:{files:[new File(['ID3-private'],'My Personal Song.mp3',{type:'audio/mpeg'})]}});let state=await loadState();assert.equal(state.tracks.length,0);assert.equal(state.localTracks.length,1);assert.equal(state.localTracks[0].ownerId,'dex-user');assert.equal(networkWrites,0);assert.ok(document.querySelector('main').textContent.includes('My Personal Song'));assert.equal(snapshot(state).tracks.length,0);
@@ -27,7 +28,7 @@ test('Privater Import, lokale Playlist und Player bleiben auf das eigene Konto b
  click('[data-action="add-to-playlist"]');assert.match(dialog.textContent,/nur|lokalen/i);assert.equal(document.querySelectorAll('[data-add-playlist]').length,1);dialog.close();
  navigate('albums');click('[data-action="new-album"]');assert.equal(document.querySelectorAll('#song-selection input').length,0);dialog.close();
  navigate('playlists');click('[data-action="new-playlist"]');form=document.querySelector('#group-form');assert.equal(document.querySelectorAll('#song-selection input').length,0);const scope=form.querySelector('[name="visibility"]');selectValue(scope,'local');scope.onchange();assert.equal(document.querySelectorAll('#song-selection input').length,1);selectValue(scope,'band');scope.onchange();assert.equal(document.querySelectorAll('#song-selection input').length,0);dialog.close();
- navigate('local');click('[data-action="play-track"]');await settle();assert.equal(audio.paused,false);assert.match(document.querySelector('#now-playing').textContent,/My Personal Song/);click('[data-action="edit-track"]');assert.equal(dialog.open,true);
+ navigate('local');click('[data-action="play-track"]');await until(()=>audio.paused===false);assert.equal(audio.paused,false);assert.match(document.querySelector('#now-playing').textContent,/My Personal Song/);click('[data-action="edit-track"]');assert.equal(dialog.open,true);
  team.user={id:'nix-user',alias:'Nix',allowed:true};navigate('local');assert.equal(audio.paused,true);assert.equal(dialog.open,false);assert.ok(!document.querySelector('#now-playing').textContent.includes('My Personal Song'));assert.ok(!document.querySelector('main').textContent.includes('My Personal Song'));assert.ok(!document.querySelector('#sidebar-playlists').textContent.includes('My Local Mix'));
  team.user=null;navigate('local');assert.match(document.querySelector('main').textContent,/Mit deinem Discord-Konto öffnen/);assert.equal(networkWrites,0);
 });

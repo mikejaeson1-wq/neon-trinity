@@ -18,7 +18,7 @@ export function loadSpotifySDK(){
   });return sdkPromise;
 }
 export class MobileSpotify{
-  constructor({storage=globalThis.sessionStorage,fetcher=globalThis.fetch,loadSDK=loadSpotifySDK,onChange=()=>{},onPlayback=()=>{}}={}){
+  constructor({storage=globalThis.sessionStorage,fetcher=globalThis.fetch.bind(globalThis),loadSDK=loadSpotifySDK,onChange=()=>{},onPlayback=()=>{}}={}){
     Object.assign(this,{storage,fetcher,loadSDK,onChange,onPlayback});this.owner=null;this.generation=0;this.refreshing=null;this.player=null;this.sdkStarting=null;this.reset();
   }
   reset(){this.tokens=null;this.profile=null;this.playlists=[];this.next=0;this.items=[];this.itemsNext=null;this.selection=null;this.playback=null;this.deviceId='';this.devices=[];this.device='';this.retryUntil=0;this.message='';this.loading=false;this.sdkState='idle';}

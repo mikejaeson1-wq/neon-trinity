@@ -15,3 +15,13 @@ test('Musikbox-URLs sind dauerhafte direkte MP3s, werden wiederverwendet und sin
 test('Musikbox-Fingerprints berücksichtigen Reihenfolge und Audiodateien; lokale und Spotify-Auswahlen werden abgewiesen',async()=>{const first=musicboxSelection(catalog,'album','album'),reversed=structuredClone(first);reversed.tracks.reverse();assert.notEqual(await musicboxFingerprint(first),await musicboxFingerprint(reversed));assert.throws(()=>musicboxSelection(catalog,'spotify','playlist'),/Ungültige/);assert.throws(()=>musicboxSelection(catalog,'track','local-private'),/Band-Songs/);const mixed=structuredClone(catalog);mixed.tracks[1].visibility='local';assert.throws(()=>musicboxSelection(mixed,'album','album'),/Private/);});
 test('Ein Kontowechsel während der Vorbereitung verhindert das Veröffentlichen und Kopieren der alten Auswahl',async()=>{const f=fixture();let finish;f.api.getBlob=()=>new Promise(resolve=>finish=resolve);const pending=f.api.create('track','song-a');for(let i=0;i<50&&!finish;i++)await new Promise(resolve=>setTimeout(resolve,2));assert.ok(finish);f.setOwner(nix);finish(new Blob(['old private session'],{type:'audio/mpeg'}));await assert.rejects(pending,/Konto/);assert.equal(f.calls.filter(c=>c.method==='POST').length,0);f.client.auth.stopAutoRefresh();});
 test('Entfernte Musikbox-Links werden beim erneuten Teilen durch eine neue URL ersetzt',async()=>{const f=fixture();try{const old=await f.api.create('track','song-a');assert.equal(await f.api.remove('track','song-a'),1);assert.equal(f.objects.size,0);assert.equal(f.rows.length,0);const next=await f.api.create('track','song-a');assert.notEqual(old.url,next.url);f.setOwner(null);await assert.rejects(f.api.create('album','album'),/Konto/);}finally{f.client.auth.stopAutoRefresh();}});
+test('Der Standard-Transport behält den Browser-Kontext beim Upload und Prüfen von Song- und Album-Links',async()=>{
+ const f=fixture(),originalFetch=globalThis.fetch;
+ globalThis.fetch=function(input,options){if(this!==globalThis)throw new TypeError("Failed to execute 'fetch' on 'Window': Illegal invocation");return f.api.fetcher(input,options);};
+ try{
+  const api=new MusicboxLinks({client:f.client,getOwner:f.api.getOwner,getCatalog:f.api.getCatalog,getBlob:f.api.getBlob,makeAlbum:f.api.makeAlbum});
+  const song=await api.create('track','song-a');assert.equal((await api.create('track','song-a')).url,song.url);
+  const album=await api.create('album','album');assert.equal(album.trackCount,2);assert.notEqual(album.url,song.url);
+  assert.equal(f.calls.filter(call=>call.method==='POST').length,2);assert.equal(f.calls.filter(call=>call.method==='HEAD').length,3);
+ }finally{globalThis.fetch=originalFetch;f.client.auth.stopAutoRefresh();}
+});

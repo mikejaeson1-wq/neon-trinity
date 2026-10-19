@@ -1,4 +1,4 @@
-# Neon Trinity Studio 0.5.0 · Supabase Edition
+# Neon Trinity Studio 0.8.1 · Supabase Edition
 
 Dex, Nix und Jax nutzen dieselbe Mediathek über ihre eigenen Discord-Konten. Das eigene Supabase-Projekt „neon-trinity“ ist bereits angelegt und in der App eingestellt. Ein eigener Teamserver und eine Kommandozeilen-Einrichtung sind nicht erforderlich.
 
@@ -216,6 +216,8 @@ Discords Bestätigung zeigt, dass die Aktivität angenommen wurde. Sichtbarkeit 
 Ab Version 0.8: Klicke im Studio mit der rechten Maustaste auf einen Band-Song, eine Albumkarte oder den Albumkopf und wähle Musikbox-Link kopieren. Alternativ den Eintrag mit Tab fokussieren und Umschalt+F10 drücken. Die MP3-URL wird in die Zwischenablage kopiert und zusätzlich angezeigt. Füge sie in Conan in das URL-Feld der Musikbox ein. Ein GitHub-Token ist dafür nicht nötig.
 
 Beim ersten Teilen eines Songs stellt das Studio dessen MP3 in einem separaten Supabase-Speicher bereit. Bei einem Album erstellt es einmalig eine einzige durchgehende Stereo-MP3 in Albumreihenfolge. Das kann beim ersten Mal etwas dauern; die Fortschrittsanzeige lässt sich abbrechen. Der Klang wird direkt aus den Originaldateien erzeugt, unabhängig von den persönlichen Equalizer-Einstellungen. Danach verwendet das gesamte Trio für dieselbe Audiofassung denselben Link.
+
+Wenn Version 0.8.0 beim Vorbereiten „Failed to execute 'fetch' on 'Window': Illegal invocation“ meldet, unter Einstellungen → Studio & Updates auf mindestens 0.8.1 aktualisieren und denselben Link erneut anfordern. Die Einrichtung und Anmeldung können bestehen bleiben.
 
 Die URL endet auf .mp3, liefert direkt Audio ohne Login und läuft nicht automatisch ab. Eine normale Album-Webseite ist für das URL-Feld einer MP3-Musikbox nicht geeignet. Geänderte Audiodateien oder eine geänderte Albumreihenfolge bekommen einen neuen Link; alte Links bleiben als eigene Audiofassung bestehen. Über Rechtsklick → Geteilte MP3-Links entfernen kannst du alle Musikbox-Fassungen dieses Songs bzw. Albums entfernen. Bereits zwischengespeicherte Kopien können kurz weiterlaufen.
 

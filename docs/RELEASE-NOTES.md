@@ -1,4 +1,13 @@
-# Neon Trinity Studio 0.8.0
+# Neon Trinity Studio 0.8.1
+
+Behebt „Failed to execute 'fetch' on 'Window': Illegal invocation“ beim Erstellen
+und Prüfen von Musikbox-Links. Der Upload verwendet die Browserfunktion jetzt mit
+dem korrekten Aufrufkontext. Bereits reservierte Links können erneut angefordert
+werden; eine erneute Einrichtung oder Anmeldung ist dafür nicht nötig.
+
+Dieselbe Korrektur gilt für die Spotify-Anbindung der Handy-App.
+
+## Seit Version 0.8.0
 
 Songs und Alben erhalten per Rechtsklick → Musikbox-Link kopieren eine direkte
 MP3-URL für die Conan-Musikbox. Songs werden beim ersten Teilen bereitgestellt;
