@@ -16,7 +16,7 @@ jobs:
       matrix:
         os: [ubuntu-latest, windows-2025]
     runs-on: ${{ matrix.os }}
-    timeout-minutes: 15
+    timeout-minutes: 25
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
       - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
@@ -26,3 +26,20 @@ jobs:
       - run: pnpm install --frozen-lockfile
       - run: pnpm test
       - run: pnpm run build:web
+      - name: Windows-Installer ohne Veröffentlichung bauen
+        if: runner.os == 'Windows'
+        run: pnpm run build:installer --publish never
+        env:
+          CSC_IDENTITY_AUTO_DISCOVERY: 'false'
+      - name: Installer und Update-Dateien prüfen
+        if: runner.os == 'Windows'
+        run: node scripts/verify-release.mjs
+      - name: Installation und Erhalt vorhandener Daten prüfen
+        if: runner.os == 'Windows'
+        run: ./scripts/test-installer.ps1
+      - name: Installierte Studio-Oberfläche starten
+        if: runner.os == 'Windows'
+        run: ./scripts/test-desktop-start.ps1
+      - name: Kompatibilitätsinformationen prüfen
+        if: runner.os == 'Windows'
+        run: node scripts/release-metadata.mjs

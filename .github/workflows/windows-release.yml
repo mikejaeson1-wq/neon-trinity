@@ -43,6 +43,8 @@ jobs:
         run: node scripts/verify-release.mjs
       - name: Installation und Erhalt lokaler Daten prüfen
         run: ./scripts/test-installer.ps1
+      - name: Installierte Studio-Oberfläche starten
+        run: ./scripts/test-desktop-start.ps1
       - name: Signatur und sichere Wiederherstellung dokumentieren
         run: node scripts/release-metadata.mjs
         env:
