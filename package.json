@@ -2,7 +2,7 @@
   "name": "neon-trinity-studio",
   "version": "0.9.0",
   "private": true,
-  "description": "Neon Trinity – Musik, Alben und Live-Setlists für Dex, Nix und Jax",
+  "description": "Neon Trinity – Musik, Alben, Live-Setlists und Suno-Import für Dex, Nix und Jax",
   "author": "Neon Trinity",
   "main": "desktop/main.cjs",
   "scripts": {
