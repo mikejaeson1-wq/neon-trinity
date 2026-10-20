@@ -8,6 +8,7 @@ const {DesktopCloud}=require('./team.cjs');
 const {roomFromArguments,listeningRoomFromURL}=require('./deep-link.cjs');
 const {DesktopSpotify,imageURL}=require('./spotify.cjs');
 const {SunoDownloads}=require('./suno-downloads.cjs');
+const {StudioBackups}=require('./backups.cjs');
 let playerSettings;
 const {StudioUpdater}=require('./updates.cjs');
 const {autoUpdater}=require('electron-updater');
@@ -21,6 +22,7 @@ let miniMeasuredHeight=0,miniSettingsOpen=false,miniWindow,quitting=false,player
 const team=new DesktopCloud({app,safeStorage,shell});
 const spotify=new DesktopSpotify({app,safeStorage,shell});
 const suno=new SunoDownloads({app,dialog,isOwner:owner=>{try{return spotifyOwner(owner)===owner;}catch{return false;}}});
+const backups=new StudioBackups({app,isOwner:owner=>{try{return spotifyOwner(owner)===owner;}catch{return false;}}});
 const presence=new DiscordPresence(message=>{if(window&&!window.isDestroyed())window.webContents.send('discord-status',message);});
 const tokenPath=()=>path.join(app.getPath('userData'),'github-token.enc');
 function secureStorageAvailable(){return safeStorage.isEncryptionAvailable() && (process.platform!=='linux'||safeStorage.getSelectedStorageBackend()!=='basic_text');}
@@ -52,6 +54,15 @@ if(primaryInstance)app.whenReady().then(async()=>{
     catch(error){return {ok:false,message:error.message,status:error.status||0};}
   });
   const handle=(name,fn)=>ipcMain.handle(name,async(event,...args)=>{trusted(event);try{return {ok:true,value:await fn(...args)};}catch(error){return {ok:false,message:error.message,status:error.status||0,data:error.data};}});
+  handle('backup:begin',(manifest,owner)=>backups.begin(manifest,owner));
+  handle('backup:write',(job,key,offset,bytes,owner)=>backups.write(job,key,offset,bytes,owner));
+  handle('backup:finish',(job,retention,owner)=>backups.finish(job,retention,owner));
+  handle('backup:abort',(job,owner)=>backups.abort(job,owner));
+  handle('backup:list',owner=>backups.list(owner));
+  handle('backup:manifest',(id,owner)=>backups.manifest(id,owner));
+  handle('backup:read',(id,key,owner)=>backups.read(id,key,owner));
+  handle('backup:remove',(id,owner)=>backups.remove(id,owner));
+  handle('backup:folder',async owner=>shell.openPath(await backups.base(owner)));
   handle('spotify:status',owner=>spotify.status(spotifyOwner(owner)));
   handle('suno:status',owner=>suno.status(spotifyOwner(owner)));
   handle('suno:choose',owner=>suno.choose(spotifyOwner(owner)));
