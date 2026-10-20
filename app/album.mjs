@@ -5,7 +5,7 @@ import {CLOUD} from './cloud-config.mjs';
 import {escapeHTML as h,time,duration} from './core.mjs';
 const main=document.querySelector('#public-main'),audio=document.querySelector('#public-audio');
 const params=new URL(location.href).searchParams,albumId=params.get('id'),roomId=params.get('room');
-const guestClient=createClient(CLOUD.url,CLOUD.key,{auth:{flowType:'pkce',detectSessionInUrl:false,persistSession:true,autoRefreshToken:true,storageKey:'neon-trinity-community-auth'}});
+const guestClient=createClient(CLOUD.url,CLOUD.key,{auth:{flowType:'pkce',detectSessionInUrl:false,persistSession:!!globalThis.localStorage,autoRefreshToken:true,storageKey:'neon-trinity-community-auth'}});
 const roomAPI=new ListeningAPI({client:guestClient});
 const presence=new RoomPresence({api:roomAPI,getRoom:()=>roomId,getName:()=>document.querySelector('#guest-name')?.value||'Gast',onError:e=>status(e.message)});
 let accessMode=null;

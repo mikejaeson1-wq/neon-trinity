@@ -10,8 +10,8 @@ export function remoteInput(command,payload={}){
 export class StudioRemote{
  constructor({client,getOwner,getSnapshot,onCommand,onChange=()=>{}}){Object.assign(this,{client,getOwner,getSnapshot,onCommand,onChange});this.owner=null;this.device=null;this.timer=null;this.busy=false;this.generation=0;this.message='Fernbedienung ausgeschaltet.';}
  async configure(owner,options){
-  const id=owner?.id||null;if(this.owner===id&&this.device===options?.deviceId&&this.enabled===!!options?.enabled)return;
-  const old=this.device,oldOwner=this.owner;this.generation++;clearInterval(this.timer);this.timer=null;this.owner=id;this.device=null;this.busy=false;this.enabled=!!options?.enabled;const change=this.generation;
+  const id=owner?.id||null;if(this.owner===id&&this.device===(options?.deviceId||null)&&this.enabled===!!options?.enabled&&this.label===String(options?.label||'Mein Studio').slice(0,60))return;
+  const old=this.device,oldOwner=this.owner;this.generation++;clearInterval(this.timer);this.timer=null;this.owner=id;this.device=null;this.busy=false;this.enabled=!!options?.enabled;this.label=String(options?.label||'Mein Studio').slice(0,60);const change=this.generation;
   if(old&&oldOwner===id)await this.client.from('nt_remote_devices').delete().eq('id',old).eq('owner_id',oldOwner).then(()=>{},()=>{});
   if(change!==this.generation)return;
   if(!id||!options?.enabled){this.message='Fernbedienung ausgeschaltet.';return;}

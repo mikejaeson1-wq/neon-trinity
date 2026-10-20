@@ -35,12 +35,13 @@ export class ListeningSession{
     const task=(async()=>{await leaving;if(generation!==this.generation)return;this.followRoom={id,host:'',track:null};await this.poll().catch(e=>{if(!e.accessMode)throw e;});if(generation!==this.generation||this.followRoom?.id!==id)return;this.timer=setInterval(()=>this.poll().catch(this.onError),2000);this.timer.unref?.();this.onChange();})();
     this.joining={id,task};task.finally(()=>{if(this.joining?.task===task)this.joining=null;}).catch(()=>{});return task;
   }
-  async poll(){
+  async poll(force=false){
+    if(this.followRoom?.accessMode&&!force)return;
     if(!this.followRoom||this.busy)return;this.busy=true;const generation=this.generation,id=this.followRoom.id;
     try{const start=Date.now(),room=await this.team.api('/api/listen/'+id);if(generation!==this.generation||this.followRoom?.id!==id)return;this.followRoom=room;await this.onRemote(room,listeningPosition(room,Date.now()-start),Date.now()-start);this.onChange();}
     catch(e){if(generation!==this.generation)return;if(e.accessMode){this.followRoom={id,accessMode:e.accessMode,error:e.message};this.onChange();}if(e.status===410){clearInterval(this.timer);this.timer=null;this.followRoom=null;this.onChange();}throw e;}finally{this.busy=false;}
   }
-  async access(code=''){if(!this.followRoom)return;await this.team.backend.listeningAPI.access(this.followRoom.id,code);await this.poll();}
+  async access(code=''){if(!this.followRoom)return;await this.team.backend.listeningAPI.access(this.followRoom.id,code);await this.poll(true);}
   async leave(){const room=this.hostRoom;this.generation++;clearInterval(this.timer);this.timer=null;this.hostRoom=null;this.followRoom=null;const cleanup=this.media?.clear();this.onChange();if(room)await this.team.api('/api/listen/'+room.id,'DELETE').catch(()=>{});await cleanup;}
   get url(){return this.hostRoom?.url||'';}
 }

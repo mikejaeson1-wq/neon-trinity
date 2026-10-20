@@ -9,7 +9,7 @@ const {roomFromArguments,listeningRoomFromURL}=require('./deep-link.cjs');
 const {DesktopSpotify,imageURL}=require('./spotify.cjs');
 const {SunoDownloads}=require('./suno-downloads.cjs');
 const {StudioBackups}=require('./backups.cjs');
-let playerSettings;
+let playerSettings,skinEngine;
 const {StudioUpdater}=require('./updates.cjs');
 const {autoUpdater}=require('electron-updater');
 protocol.registerSchemesAsPrivileged([{scheme:'ntapp',privileges:{standard:true,secure:true,supportFetchAPI:true,corsEnabled:true,stream:true}}]);
@@ -31,7 +31,7 @@ function trusted(event){const u=event.senderFrame&&new URL(event.senderFrame.url
 if(primaryInstance)app.whenReady().then(async()=>{
   if(app.isPackaged)app.setAsDefaultProtocolClient('neontrinity');
   token=await readToken();
-  playerSettings=await import('../app/player-settings.mjs');await team.load();await spotify.load();await suno.load();
+  playerSettings=await import('../app/player-settings.mjs');skinEngine=await import('../app/skin-engine.mjs');await team.load();await spotify.load();await suno.load();
   if(team.config.discordClientId)presence.configure(team.config.discordClientId);
   const appRoot=path.resolve(__dirname,'../app');
   protocol.handle('ntapp',request=>{
@@ -93,18 +93,19 @@ if(primaryInstance)app.whenReady().then(async()=>{
   handle('player:update',state=>{
     const bounded=(n,max=86400)=>Math.max(0,Math.min(max,Number(n)||0));
     const source=['studio','local','spotify','listen'].includes(state.source)?state.source:'studio';
-    playerState={title:String(state.title||'').slice(0,180),artist:String(state.artist||'Neon Trinity').slice(0,160),position:bounded(state.position),duration:bounded(state.duration),paused:!!state.paused,source,private:!!state.private||source==='spotify'||source==='local',roomUrl:source==='studio'||source==='listen'||source==='local'?String(state.roomUrl||'').slice(0,1000):'',volume:state.volume==null?null:bounded(state.volume,1),image:imageURL(state.image)||(/^blob:ntapp:\/\/studio\/[a-f0-9-]{36}$/i.test(state.image||'')?state.image:''),device:String(state.device||'').slice(0,160),shuffle:!!state.shuffle,repeat:['off','context','track'].includes(state.repeat)?state.repeat:'off',appearance:playerSettings.normalizePlayer(state.appearance),equalizer:playerSettings.normalizeEqualizer(state.equalizer),spectrum:source==='spotify'?[]:(Array.isArray(state.spectrum)?state.spectrum:[]).slice(0,24).map(n=>bounded(n,100))};
+    playerState={title:String(state.title||'').slice(0,180),artist:String(state.artist||'Neon Trinity').slice(0,160),position:bounded(state.position),duration:bounded(state.duration),paused:!!state.paused,source,hidePresence:!!state.hidePresence,customSkin:state.customSkin?skinEngine.skinInput(state.customSkin):null,mascot:{enabled:state.mascot?.enabled!==false,intensity:Math.min(2,Math.max(0,Number.isFinite(Number(state.mascot?.intensity))?Number(state.mascot.intensity):1))},private:!!state.private||source==='spotify'||source==='local',roomUrl:source==='studio'||source==='listen'||source==='local'?String(state.roomUrl||'').slice(0,1000):'',volume:state.volume==null?null:bounded(state.volume,1),image:imageURL(state.image)||(/^blob:ntapp:\/\/studio\/[a-f0-9-]{36}$/i.test(state.image||'')?state.image:''),device:String(state.device||'').slice(0,160),shuffle:!!state.shuffle,repeat:['off','context','track'].includes(state.repeat)?state.repeat:'off',appearance:playerSettings.normalizePlayer(state.appearance),equalizer:playerSettings.normalizeEqualizer(state.equalizer),spectrum:source==='spotify'?[]:(Array.isArray(state.spectrum)?state.spectrum:[]).slice(0,24).map(n=>bounded(n,100))};
     playerState.queueTitle=String(state.queueTitle||'Playlist').slice(0,180);playerState.queueMessage=String(state.queueMessage||'').slice(0,250);playerState.queueMore=!!state.queueMore;playerState.queueLoading=!!state.queueLoading;playerState.queue=(Array.isArray(state.queue)?state.queue:[]).slice(0,1000).filter(t=>t&&typeof t.id==='string').map(t=>({id:t.id.slice(0,100),title:String(t.title||'').slice(0,180),artist:String(t.artist||'').slice(0,160),duration:bounded(t.duration),active:!!t.active,playable:t.playable!==false}));
     for(const key of ['canToggle','canNext','canPrevious','canSeek','canVolume','canShuffle','canRepeat'])playerState[key]=state[key]!==false;
     if(miniWindow&&!miniWindow.isDestroyed()){miniWindow.webContents.send('player-state',playerState);resizeMini();}
     presence.update(playerState);return true;
   });
   handle('player:command',command=>{
-    if(!['toggle','next','previous','seek','volume','shuffle','repeat','appearance','equalizer','open-spotify','queue-play','queue-more'].includes(command?.command))throw new Error('Unbekannter Player-Befehl.');
+    if(!['toggle','next','previous','seek','volume','shuffle','repeat','appearance','equalizer','open-spotify','queue-play','queue-more','queue-move','queue-next','queue-save'].includes(command?.command))throw new Error('Unbekannter Player-Befehl.');
     const message={command:command.command};
     if(['seek','volume'].includes(command.command)){if(!Number.isFinite(command.value))throw new Error('Ungültiger Player-Wert.');message.value=Math.max(0,Math.min(1,command.value));}
     if(command.command==='appearance'){const value=command.value||{};message.value={};for(const key of ['skin','layout','equalizerOpen','playlistOpen'])if(Object.hasOwn(value,key))message.value[key]=playerSettings.normalizePlayer({...playerState.appearance,[key]:value[key]})[key];}
-    if(command.command==='queue-play'){if(!command.value||typeof command.value.id!=='string'||!['spotify','studio','local'].includes(command.value.source))throw new Error('Ungültiger Playlist-Titel.');message.value={id:command.value.id.slice(0,100),source:command.value.source};}
+    if(command.command==='queue-move'){if(!Number.isInteger(command.value?.from)||!Number.isInteger(command.value?.to)||command.value.from<0||command.value.to<0||command.value.from>2000||command.value.to>2000)throw new Error('Ungültige Reihenfolge.');message.value={from:command.value.from,to:command.value.to};}
+    if(command.command==='queue-play'||command.command==='queue-next'){if(!command.value||typeof command.value.id!=='string'||!['spotify','studio','local'].includes(command.value.source))throw new Error('Ungültiger Playlist-Titel.');message.value={id:command.value.id.slice(0,100),source:command.value.source};}
     if(command.command==='equalizer')message.value=playerSettings.normalizeEqualizer(command.value);
     window.webContents.send('player-command',message);return true;
   });
@@ -118,7 +119,8 @@ if(primaryInstance)app.whenReady().then(async()=>{
   handle('studio:update-status',()=>studioUpdater.status());
   handle('studio:update-check',()=>studioUpdater.check());
   handle('studio:update-download',()=>studioUpdater.download());
-  handle('studio:update-install',()=>studioUpdater.install());
+  handle('studio:update-install',()=>{if(backups.busy)throw new Error('Bitte die laufende Sicherung abschließen.');return studioUpdater.install();});
+  let lastSpectrum=0;ipcMain.handle('player:spectrum',async(event,values)=>{trusted(event);if(event.sender!==window.webContents)return {ok:false,message:'Nur der Hauptplayer darf Audiodaten übertragen.'};if(Date.now()-lastSpectrum<70)return {ok:true,value:false};lastSpectrum=Date.now();const spectrum=(Array.isArray(values)?values:[]).slice(0,24).map(n=>Math.min(100,Math.max(0,Number(n)||0)));if(miniWindow&&!miniWindow.isDestroyed())miniWindow.webContents.send('player-spectrum',spectrum);return {ok:true,value:true};});
   createWindow();
   studioUpdater.start();
   Menu.setApplicationMenu(Menu.buildFromTemplate([{label:'Studio',submenu:[{role:'reload',label:'Neu laden'},{role:'togglefullscreen',label:'Vollbild'},{type:'separator'},{role:'quit',label:'Beenden'}]},{label:'Bearbeiten',submenu:[{role:'undo',label:'Rückgängig'},{role:'redo',label:'Wiederholen'},{type:'separator'},{role:'cut',label:'Ausschneiden'},{role:'copy',label:'Kopieren'},{role:'paste',label:'Einfügen'},{role:'selectAll',label:'Alles auswählen'}]},{label:'Ansicht',submenu:[{role:'resetZoom',label:'Originalgröße'},{role:'zoomIn',label:'Vergrößern'},{role:'zoomOut',label:'Verkleinern'}]}]));
@@ -138,6 +140,7 @@ function openLink(input){try{const u=new URL(input);if(u.protocol==='https:'&&!u
 function receiveListeningRoom(room){pendingRoom=room;if(window&&!window.isDestroyed()){if(!window.webContents.isLoadingMainFrame()){window.webContents.send('listen-room',room);pendingRoom=null;}window.minimize();}}
 app.on('second-instance',(_event,argv)=>{const room=roomFromArguments(argv);if(room){receiveListeningRoom(room);return;}if(window&&!window.isDestroyed()){if(window.isMinimized())window.restore();window.show();window.focus();}});
 app.on('open-url',(event,url)=>{const room=listeningRoomFromURL(url);if(room){event.preventDefault();receiveListeningRoom(room);}});
+app.on('before-quit',()=>{quitting=true;backups.close().catch(()=>{});});
 app.on('window-all-closed',()=>{if(process.platform!=='darwin')app.quit();});
 
 function openMini(){if(miniWindow&&!miniWindow.isDestroyed()){miniWindow.show();miniWindow.focus();return;}miniSettingsOpen=false;miniMeasuredHeight=0;miniWindow=new BrowserWindow({width:430,height:276,minWidth:430,minHeight:170,resizable:false,frame:false,alwaysOnTop:true,skipTaskbar:true,title:'Neon Trinity Miniplayer',backgroundColor:'#100919',webPreferences:{preload:path.join(__dirname,'preload.cjs'),contextIsolation:true,nodeIntegration:false,sandbox:true,webSecurity:true}});miniWindow.webContents.setWindowOpenHandler(()=>({action:'deny'}));miniWindow.webContents.on('will-navigate',event=>event.preventDefault());miniWindow.webContents.on('did-finish-load',()=>miniWindow.webContents.send('player-state',playerState));miniWindow.on('closed',()=>{miniWindow=null;if(!quitting&&window&&!window.isDestroyed()&&!window.isVisible())window.show();});miniWindow.loadURL('ntapp://studio/mini.html');resizeMini();}
