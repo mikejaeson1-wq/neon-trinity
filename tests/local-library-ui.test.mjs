@@ -15,7 +15,7 @@ globalThis.MediaMetadata=class{constructor(data){Object.assign(this,data);}};
 const dialog=document.querySelector('dialog');dialog.showModal=()=>dialog.open=true;dialog.close=()=>dialog.open=false;
 globalThis.FormData=class{constructor(form){this.values=[...form.querySelectorAll('input[name],textarea[name],select[name]')].filter(el=>!['checkbox','radio'].includes(el.type)||el.checked).map(el=>[el.name,el.type==='file'?el.files?.[0]||new File([],''):el.value]);}get(key){return this.values.find(([k])=>k===key)?.[1]??null;}entries(){return this.values[Symbol.iterator]();}};
 let team,networkWrites=0;
-TeamClient.prototype.detect=async function(){team=this;this.user={id:'dex-user',alias:'Dex',allowed:true};this.baseline=emptyCatalog();this.backend.upload=async()=>{networkWrites++;throw new Error('A local MP3 must never reach Storage');};this.backend.save=async()=>{networkWrites++;return {catalog:emptyCatalog()};};return true;};
+TeamClient.prototype.detect=async function(){team=this;this.getState().appearance.autoListen=false;this.backend.publicRequest=async()=>{networkWrites++;throw new Error('Automatisches Mithören ist ausgeschaltet.');};this.user={id:'dex-user',alias:'Dex',allowed:true};this.baseline=emptyCatalog();this.backend.upload=async()=>{networkWrites++;throw new Error('A local MP3 must never reach Storage');};this.backend.save=async()=>{networkWrites++;return {catalog:emptyCatalog()};};return true;};
 await import('../app/app.mjs');const {loadState}=await import('../app/db.mjs');
 const click=selector=>{const el=document.querySelector(selector);assert.ok(el,selector);el.dispatchEvent(new window.Event('click',{bubbles:true}));};
 const navigate=route=>{location.hash='#'+route;window.dispatchEvent(new window.Event('hashchange'));};
