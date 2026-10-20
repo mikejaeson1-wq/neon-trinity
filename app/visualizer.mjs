@@ -1,3 +1,4 @@
+import {sceneInput} from './skin-engine.mjs';
 import {normalizeAppearance,visualizerColors} from './appearance.mjs';
 import {EQ_FREQUENCIES,normalizeEqualizer,applyEqualizer} from './player-settings.mjs';
 
@@ -13,13 +14,25 @@ export class AudioVisualizer{
   spectrum(){if(!this.analyser||this.audio.paused)return [];this.analyser.getByteFrequencyData(this.frequencies);return Array.from({length:24},(_,i)=>Math.round(this.frequencies[Math.floor(2+(i/24)**1.7*450)]/255*100));}
   async resume(){
     if(!this.AudioContextClass)return false;
-    if(!this.context){this.context=new this.AudioContextClass();this.analyser=this.context.createAnalyser();this.analyser.fftSize=2048;this.analyser.smoothingTimeConstant=.78;this.source=this.context.createMediaElementSource(this.audio);this.source.connect(this.analyser);this.analyser.connect(this.context.destination);this.frequencies=new Uint8Array(this.analyser.frequencyBinCount);this.wave=new Uint8Array(this.analyser.fftSize);}
+    if(!this.context){this.context=new this.AudioContextClass();this.analyser=this.context.createAnalyser();this.analyser.fftSize=2048;this.analyser.smoothingTimeConstant=.78;this.source=this.context.createMediaElementSource(this.audio.element||this.audio);this.source.connect(this.analyser);this.analyser.connect(this.context.destination);this.frequencies=new Uint8Array(this.analyser.frequencyBinCount);this.wave=new Uint8Array(this.analyser.fftSize);}
     if(this.context.createBiquadFilter&&!this.filters){
       this.source.disconnect();this.preamp=this.context.createGain();this.filters=EQ_FREQUENCIES.map(f=>{const node=this.context.createBiquadFilter();node.type='peaking';node.frequency.value=f;node.Q.value=1.4;return node;});
       this.panner=this.context.createStereoPanner?.();this.limiter=this.context.createDynamicsCompressor();this.limiter.threshold.value=-1;this.limiter.knee.value=0;this.limiter.ratio.value=20;this.limiter.attack.value=.003;this.limiter.release.value=.15;
       let previous=this.source;for(const node of [this.preamp,...this.filters,...(this.panner?[this.panner]:[]),this.limiter]){previous.connect(node);previous=node;}previous.connect(this.analyser);applyEqualizer(this,this.equalizer);
     }
     if(this.context.state==='suspended')await this.context.resume();return true;
+  }
+  configureScene(value){this.scene=value?sceneInput(value):null;if(this.scene?.image&&typeof Image!=='undefined'){this.sceneImage=new Image();this.sceneImage.src=this.scene.image;}else this.sceneImage=null;}
+  drawScene(c,w,h,value){
+    const s=this.scene;if(!s)return false;const now=(globalThis.performance?.now?.()||0)/1000;if(this.sceneImage?.complete)c.drawImage(this.sceneImage,0,0,w,h);
+    const gradient=c.createLinearGradient(0,0,w,h);gradient.addColorStop(0,s.color1);gradient.addColorStop(1,s.color2);c.fillStyle=gradient;c.strokeStyle=gradient;
+    for(const layer of s.layers){c.save();c.globalAlpha=layer.opacity;c.translate(w/2,h/2);c.scale(layer.scale,layer.scale);c.translate(-w/2,-h/2);
+      if(layer.mode==='bars'){for(let i=0;i<64;i++){const height=Math.max(2,value(i)*h*.75);c.fillRect(i*w/64,h-height,w/64-3,height);}}
+      else if(layer.mode==='wave'){c.beginPath();for(let i=0;i<128;i++){const x=i/127*w,y=h/2+Math.sin(i*.14+now*3)*h*.2*value(i%64);i?c.lineTo(x,y):c.moveTo(x,y);}c.stroke();}
+      else if(layer.mode==='orbit'){for(let i=0;i<64;i++){const angle=i/64*Math.PI*2,r=Math.min(w,h)*(.2+value(i)*.25);c.beginPath();c.arc(w/2+Math.cos(angle)*r,h/2+Math.sin(angle)*r,2+value(i)*5,0,Math.PI*2);c.fill();}}
+      else for(let i=0;i<70;i++){const x=(Math.sin(i*23.7+now*.17)+1)/2*w,y=(Math.cos(i*8.1+now*.13)+1)/2*h;c.beginPath();c.arc(x,y,1+value(i%64)*7,0,Math.PI*2);c.fill();}
+      c.restore();
+    }return true;
   }
   detach(){if(this.frame!=null)this.cancelFrame?.(this.frame);this.frame=null;this.canvas=null;this.ctx=null;}
   draw(){
@@ -33,7 +46,8 @@ export class AudioVisualizer{
       const active=this.analyser&&!this.audio.paused;if(active){this.analyser.getByteFrequencyData(this.frequencies);this.analyser.getByteTimeDomainData(this.wave);}
       const gradient=c.createLinearGradient(0,h,w,0);gradient.addColorStop(0,p.color1);gradient.addColorStop(1,p.color2);c.fillStyle=gradient;c.strokeStyle=gradient;c.shadowColor=p.color1;c.shadowBlur=s.glow;c.lineWidth=2;
       const n=72,value=i=>active?Math.min(1,this.frequencies[Math.min(this.frequencies.length-1,Math.floor(2+(i/n)**1.8*500))]/255*s.sensitivity):0;
-      if(s.mode==='wave'){
+      if(this.scene){this.drawScene(c,w,h,value);}
+      else if(s.mode==='wave'){
         c.beginPath();for(let i=0;i<=256;i++){const x=i/256*w,y=h/2+(active?(this.wave[i*7]-128)/128:0)*h*.37*s.sensitivity;i?c.lineTo(x,y):c.moveTo(x,y);}c.stroke();
       }else if(s.mode==='orbit'){
         const r=Math.min(w,h)*.22;for(let i=0;i<n;i++){const a=i/n*Math.PI*2,amp=value(i)*Math.min(w,h)*.22;c.beginPath();c.moveTo(w/2+Math.cos(a)*r,h/2+Math.sin(a)*r);c.lineTo(w/2+Math.cos(a)*(r+amp+2),h/2+Math.sin(a)*(r+amp+2));c.stroke();}c.shadowBlur=0;c.font='600 11px Segoe UI';c.textAlign='center';c.fillStyle=p.color1;c.fillText('YOUR FREQUENCY',w/2,h/2+4);

@@ -138,7 +138,7 @@ revoke all on public.nt_room_requests from public,anon,authenticated;
 alter table public.nt_rooms add column transition_seconds double precision not null default 0 check(transition_seconds between 0 and 12);
 
 alter table public.nt_profiles
- add column header_path text not null default '' check(header_path='' or header_path ~ ('^'||alias||'/[a-f0-9-]{36}\\.(png|jpg|webp)$')),
+ add column header_path text not null default '' check(header_path='' or header_path ~ ('^'||alias||'/[a-f0-9-]{36}\.(png|jpg|webp)$')),
  add column pinned_release_ids text[] not null default '{}' check(cardinality(pinned_release_ids)<=6),
  add column news text not null default '' check(length(news)<=1200);
 grant update(header_path,pinned_release_ids,news) on public.nt_profiles to authenticated;

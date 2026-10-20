@@ -1,6 +1,6 @@
 const database = new Promise((resolve, reject) => {
-  const request = indexedDB.open('neon-trinity-studio', 2);
-  request.onupgradeneeded = () => { for(const name of ['state','blobs','restore-staging'])if(!request.result.objectStoreNames.contains(name))request.result.createObjectStore(name); };
+  const request = indexedDB.open('neon-trinity-studio', 1);
+  request.onupgradeneeded = () => { request.result.createObjectStore('state'); request.result.createObjectStore('blobs'); };
   request.onsuccess = () => resolve(request.result);
   request.onerror = () => reject(new Error('Die lokale Mediathek konnte nicht geöffnet werden. Bitte Speicherzugriff erlauben.'));
 });
@@ -22,8 +22,12 @@ export const deleteBlob = key => transaction(['blobs'],'readwrite',tx=>tx.object
 export const allBlobs = () => transaction(['blobs'],'readonly',tx=>{const r=tx.objectStore('blobs').getAll(),k=tx.objectStore('blobs').getAllKeys();return ()=>k.result.map((key,i)=>({key,blob:r.result[i]}));});
 export const replaceDatabase = (state,blobs) => transaction(['state','blobs'],'readwrite',tx=>{tx.objectStore('state').put(state,'main');const b=tx.objectStore('blobs');b.clear();for(const item of blobs)b.put(item.blob,item.key);});
 
-export const clearRestoreStaging=()=>transaction(['restore-staging'],'readwrite',tx=>tx.objectStore('restore-staging').clear());
-export const stageRestoreBlob=(key,blob)=>transaction(['restore-staging'],'readwrite',tx=>tx.objectStore('restore-staging').put(blob,key));
-export const commitStagedRestore=state=>transaction(['state','blobs','restore-staging'],'readwrite',tx=>{
- const staging=tx.objectStore('restore-staging'),target=tx.objectStore('blobs');const cursor=staging.openCursor();cursor.onsuccess=()=>{const c=cursor.result;if(c){target.put(c.value,c.key);c.continue();}else staging.clear();};tx.objectStore('state').put(state,'main');
-});
+const stagingDatabase=new Promise((resolve,reject)=>{const r=indexedDB.open('neon-trinity-restore-staging',1);r.onupgradeneeded=()=>r.result.createObjectStore('files');r.onsuccess=()=>resolve(r.result);r.onerror=()=>reject(new Error('Die Wiederherstellung konnte nicht vorbereitet werden.'));});
+async function staging(mode,callback){const db=await stagingDatabase;return new Promise((resolve,reject)=>{const tx=db.transaction('files',mode);let value;try{value=callback(tx.objectStore('files'));}catch(e){tx.abort();reject(e);return;}tx.oncomplete=()=>resolve(typeof value==='function'?value():value);tx.onerror=()=>reject(tx.error||new Error('Wiederherstellung vorbereiten fehlgeschlagen.'));});}
+export const clearRestoreStaging=()=>staging('readwrite',s=>s.clear());
+export const stageRestoreBlob=(key,blob)=>staging('readwrite',s=>s.put(blob,key));
+export async function commitStagedRestore(state){
+ const files=await staging('readonly',s=>{const keys=s.getAllKeys(),blobs=s.getAll();return ()=>keys.result.map((key,i)=>({key,blob:blobs.result[i]}));});
+ await transaction(['state','blobs'],'readwrite',tx=>{tx.objectStore('state').put(state,'main');const blobs=tx.objectStore('blobs');for(const file of files)blobs.put(file.blob,file.key);});
+ await clearRestoreStaging();
+}
