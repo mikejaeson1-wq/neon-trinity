@@ -10,11 +10,12 @@ globalThis.document={querySelector:()=>null};globalThis.window={};
 test('Ein deaktivierter Discord-Anbieter wird vor dem Desktop-Login verständlich gemeldet',async()=>{let started=false;const oldWindow=globalThis.window;globalThis.window={neonDesktop:{cloudStartLogin:async()=>{started=true;}}};const team=new TeamClient({backend:{info:{},discordAvailable:async()=>false},getState:()=>newState(),setState:()=>{},getBlob:async()=>null,putBlob:async()=>{}});try{await assert.rejects(team.login(),/Discord ist in Supabase noch nicht aktiviert/);assert.equal(started,false);}finally{globalThis.window=oldWindow;}});
 const clone=structuredClone;
 function fixture(){
- const server={data:emptyCatalog(),revision:0,media:new Map(),releases:new Map(),privatePlaylists:new Map(),casMisses:0};
+ const server={work:[{record_kind:'track',record_id:'public',lyrics:'[00:01]Band lyric',credits:'Dex',notes:'secret mix note'},{record_kind:'track',record_id:'draft',lyrics:'secret draft lyric',credits:'Nix'}],data:emptyCatalog(),revision:0,media:new Map(),releases:new Map(),privatePlaylists:new Map(),casMisses:0};
  const response=data=>new Response(JSON.stringify(data),{status:200,headers:{'Content-Type':'application/json'}});
  async function fetcher(input,init={}){
   const url=new URL(String(input)),method=init.method||'GET',actor=new Headers(init.headers).get('X-Test-Actor');
   if(url.pathname.endsWith('/rpc/nt_identity'))return response({id:actor,alias:actor,allowed:true});
+  if(url.pathname.endsWith('/nt_workbench'))return response(server.work);
   if(url.pathname.endsWith('/nt_config'))return response({discord_client_id:'123456789012345678',public_base:'https://band.example'});
   if(url.pathname.endsWith('/nt_catalog')){
    if(method==='GET')return response({data:clone(server.data),revision:server.revision});
@@ -73,6 +74,7 @@ test('Supabase-Publikation enthält nur freigegebene Dateien; Zurückziehen erh�
  dex.state.tracks.push({id:'public',blobId:'blob-public',title:'Release',artist:'Band',duration:123,size:3},{id:'draft',blobId:'blob-draft',title:'Draft',artist:'Band',duration:80,size:7});
  dex.state.albums.push({id:'album',title:'Release',description:'',trackIds:['public'],year:2026});await dex.team.push(clone(dex.state));
  await dex.backend.publish(['album'],'trinity');assert.deepEqual(f.server.releases.get('album').data.tracks.map(t=>t.id),['public']);assert.equal(f.server.releases.get('album').asset_paths.length,1);assert.ok(!JSON.stringify(f.server.releases.get('album')).includes('blob-draft'));
+ const publicData=f.server.releases.get('album').data;assert.equal(publicData.work[0].lyrics,'[00:01]Band lyric');assert.ok(!JSON.stringify(publicData).includes('secret mix note'));assert.ok(!JSON.stringify(publicData).includes('secret draft lyric'));
  await dex.backend.publish([],'trinity');assert.equal(f.server.releases.size,0);assert.equal(f.server.media.size,2);assert.equal(f.server.data.tracks.length,2);
  }finally{dex.close();}
 });
