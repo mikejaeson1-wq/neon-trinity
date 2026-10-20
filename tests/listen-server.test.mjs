@@ -29,7 +29,7 @@ function fixture(){
     }catch(e){return Promise.reject(e).then(resolve,reject);}}
    };return q;
   };
-  return {from,auth:{getUser:async()=>({data:{user:actor==='expired'?null:{id:actor}},error:null})},rpc:async()=>({data:{id:actor,alias:actor===dex?'Dex':'Nix',allowed:[dex,nix].includes(actor)},error:null}),storage:{from:bucket=>({
+  return {from,auth:{getUser:async()=>({data:{user:actor==='expired'?null:{id:actor}},error:null})},rpc:async()=>({data:{id:actor,alias:actor===dex?'Dex':'Nix',discordId:actor===dex?'229262929491394560':actor===nix?'402230022141902848':'000000000000000001',allowed:[dex,nix].includes(actor)},error:null}),storage:{from:bucket=>({
    createSignedUrl:async(path,ttl)=>{signed.push({bucket,path,ttl});return {data:{signedUrl:'https://media.example/'+bucket+'/'+path+'?signed=true'},error:null};},
    createSignedUrls:async()=>({data:[],error:null}),
    list:async prefix=>({data:[...objects.entries()].filter(([k])=>k.startsWith(bucket+'/'+prefix+'/')).map(([,v])=>v),error:null}),
@@ -97,4 +97,10 @@ test('Gäste sehen nur erlaubte Songwünsche; Gastkennung allein erlaubt keine I
  const status=await f.request('/listen/'+roomId+'/status','GET',null,dex);assert.equal(status.data.requests[0].name,'Fan');assert.equal(status.data.listeners[0].listening,true);
  assert.equal((await f.request('/listen/'+roomId+'/status','GET',null,nix)).status,403);
  const publicRoom=await f.request('/listen/'+roomId);assert.ok(!JSON.stringify(publicRoom.data).includes(guest.guestToken));
+});
+
+test('Discord-Einladungen erlauben nur das eingeladene verifizierte Konto und geben Gästen keine Gastgeberrechte',async()=>{
+ const f=fixture();assert.equal((await f.request('/listen-preferences','PATCH',{mode:'invite',invitedDiscordIds:['402230022141902848'],roomId},dex)).status,200);assert.equal((await f.request('/listen/'+roomId)).status,403);
+ assert.equal((await f.request('/listen/'+roomId+'/access','POST',{})).status,401);assert.equal((await f.request('/listen/'+roomId+'/access','POST',{},'outsider')).status,403);
+ const grant=await f.request('/listen/'+roomId+'/access','POST',{},nix);assert.equal(grant.status,200);assert.equal((await f.request('/listen/'+roomId,'GET',null,{'x-listen-ticket':grant.data.accessToken})).status,200);assert.equal((await f.request('/listen/'+roomId+'/status','GET',null,nix)).status,403);assert.equal((await f.request('/listen/'+roomId,'GET',null,dex)).status,200);
 });

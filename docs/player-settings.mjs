@@ -1,4 +1,4 @@
-export const PLAYER_SKINS={classic:'Classic Graphite',trinity:'Trinity Neon',silver:'Silver Hi-Fi',amber:'Amber Terminal',ice:'Glacier Blue',cyberware:'Cyberware Head',capybara:'Capybara FM',wolf:'Glacier Wolf',raven:'Black Raven',cassette:'Cassette Bot',jellyfish:'Cosmic Jellyfish'};
+export const PLAYER_SKINS={classic:'Classic Graphite',custom:'Dein eigener Skin',trinity:'Trinity Neon',silver:'Silver Hi-Fi',amber:'Amber Terminal',ice:'Glacier Blue',cyberware:'Cyberware Head',capybara:'Capybara FM',wolf:'Glacier Wolf',raven:'Black Raven',cassette:'Cassette Bot',jellyfish:'Cosmic Jellyfish'};
 export const PLAYER_LAYOUTS={classic:'Classic Rack',modern:'Cover Player',compact:'Kompakt'};
 export const EQ_FREQUENCIES=[31,62,125,250,500,1000,2000,4000,8000,16000];
 export const EQ_PRESETS={flat:{name:'Neutral',gains:[0,0,0,0,0,0,0,0,0,0]},rock:{name:'Rock',gains:[4,3,1,-1,-2,0,2,3,4,3]},bass:{name:'Bass',gains:[6,5,4,2,0,0,-1,-1,0,0]},vocal:{name:'Stimmen',gains:[-3,-2,-1,0,2,4,4,2,0,-1]},electronic:{name:'Electronic',gains:[5,4,1,0,-2,1,0,2,4,5]},night:{name:'Nacht',gains:[-4,-3,-2,0,2,2,1,0,-2,-3]}};

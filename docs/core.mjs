@@ -43,6 +43,7 @@ export function validateState(data) {
     }
   }
   if(data.privatePlaylists!==undefined&&(!Array.isArray(data.privatePlaylists)||data.privatePlaylists.some(p=>!p||!/^[a-zA-Z0-9-]{1,80}$/.test(p.id||'')||typeof p.ownerId!=='string'||!Array.isArray(p.trackIds))))throw new Error('Ungültige persönliche Playlists im Backup.');
+  if(data.studioOwners!==undefined&&(typeof data.studioOwners!=='object'||!data.studioOwners||Array.isArray(data.studioOwners)||Object.entries(data.studioOwners).some(([key,value])=>!/^[-a-zA-Z0-9]{1,80}$/.test(key)||!value||typeof value!=='object'||Array.isArray(value))))throw new Error('Ungültige kontogetrennte Studio-Einstellungen.');
   const defaults=newState();
   const settings={...defaults.settings,...data.settings};
   if(!/^[A-Za-z0-9-]+$/.test(settings.owner)||!/^[A-Za-z0-9_.-]{1,100}$/.test(settings.repo))throw new Error('Ungültige GitHub-Einstellungen im Backup.');

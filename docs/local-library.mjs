@@ -1,6 +1,8 @@
 import {validateRecord,validId} from './shared.mjs';
+import {retainedBlobIds} from './studio-state.mjs';
 
-// Personal audio is intentionally absent from the shared catalog and Supabase.
+// Originals and playlists stay out of the shared catalog. Live listening stages
+// only the currently selected MP3 separately; see listen-media.mjs.
 export const ownLocalTracks=(state,owner)=>owner?(state.localTracks||[]).filter(t=>t.ownerId===owner):[];
 export const ownLocalPlaylists=(state,owner)=>owner?(state.localPlaylists||[]).filter(p=>p.ownerId===owner):[];
 export const isLocalTrack=(state,key)=>(state.localTracks||[]).some(t=>t.id===key);
@@ -32,8 +34,9 @@ export function validateLocalLibrary(state){
   return {localTracks:tracks.map(t=>({...t,visibility:'local'})),localPlaylists:playlists.map(p=>({...p,visibility:'local'}))};
 }
 export function backupForOwner(state,owner){
-  return {...structuredClone(state),privatePlaylists:(state.privatePlaylists||[]).filter(p=>owner&&p.ownerId===owner),localTracks:ownLocalTracks(state,owner),localPlaylists:ownLocalPlaylists(state,owner)};
+  return {...structuredClone(state),studioOwners:owner&&state.studioOwners?.[owner]?{[owner]:structuredClone(state.studioOwners[owner])}:{},privatePlaylists:(state.privatePlaylists||[]).filter(p=>owner&&p.ownerId===owner),localTracks:ownLocalTracks(state,owner),localPlaylists:ownLocalPlaylists(state,owner)};
 }
 export function backupBlobIds(state){
-  return new Set([...state.tracks,...(state.localTracks||[])].flatMap(t=>[t.blobId,t.coverBlobId]).concat(state.albums.map(a=>a.coverBlobId),state.background?.blobId).filter(Boolean));
+ const active=[...state.tracks,...(state.localTracks||[])].flatMap(t=>[t.blobId,t.coverBlobId]).concat(state.albums.map(a=>a.coverBlobId),state.background?.blobId).filter(Boolean);
+ return new Set([...active,...Object.keys(state.studioOwners||{}).flatMap(owner=>[...retainedBlobIds(state,owner)])]);
 }

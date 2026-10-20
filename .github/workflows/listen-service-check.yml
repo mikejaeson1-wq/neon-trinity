@@ -1,8 +1,8 @@
 name: Mithördienst live prüfen
 on:
   push:
-    branches: [main]
-    paths: [supabase/functions/neon-public/**, supabase/listen-private.sql, .github/workflows/listen-service-check.yml]
+    branches: [main, studio-1.0]
+    paths: [supabase/functions/neon-public/**, supabase/listen-private.sql, supabase/studio-1.0.sql, .github/workflows/listen-service-check.yml]
   workflow_dispatch:
 permissions:
   contents: read
@@ -29,5 +29,8 @@ jobs:
           assert.equal((await request('/listen/'+'0'.repeat(64))).status,410);
           assert.equal((await request('/listen/not-a-room')).status,404);
           assert.equal((await request('/listen-media','POST',{trackId:'check',title:'Check',artist:'Check',duration:1,byteSize:3})).status,401);
+          assert.equal((await request('/listen-preferences')).status,401);
+          assert.equal((await request('/listen-preferences','PATCH',{mode:'link'})).status,401);
+          assert.equal((await request('/listen/'+'0'.repeat(64)+'/status')).status,410);
           console.log('Live-Mithördienst erreichbar; ungültige und abgelaufene Links gesperrt; anonyme Uploads abgewiesen. Keine Testdateien angelegt.');
           NODE

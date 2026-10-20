@@ -14,7 +14,7 @@ const options=(rows,current)=>rows.map(([value,label])=>'<option value="'+h(valu
 const check=r=>{if(r.error)throw new Error(r.error.message);return r.data;};
 export class StudioPlus{
  constructor(context){
-  Object.assign(this,context);this.owner=undefined;this.journal=new StudioJournal();this.selection='';this.selectedKind='track';this.commentsTrack='';this.wave=null;this.waveId='';this.statuses=[];this.recovery={items:[],message:''};this.recoveryReady=false;this.roomStatus=null;this.roomPreferences=null;this.roomBusy=false;this.zip=null;this.draftSkin=skinInput();this.draftScene=sceneInput();this.live={id:'',pauses:[],locked:true,enabled:false,waiting:false};this.message='';
+  Object.assign(this,context);try{this.deviceId=localStorage.getItem('neon-trinity-device-id')||crypto.randomUUID();localStorage.setItem('neon-trinity-device-id',this.deviceId);}catch{this.deviceId=crypto.randomUUID();}this.owner=undefined;this.journal=new StudioJournal();this.selection='';this.selectedKind='track';this.commentsTrack='';this.wave=null;this.waveId='';this.statuses=[];this.recovery={items:[],message:''};this.recoveryReady=false;this.roomStatus=null;this.roomPreferences=null;this.roomBusy=false;this.zip=null;this.draftSkin=skinInput();this.draftScene=sceneInput();this.live={id:'',pauses:[],locked:true,enabled:false,waiting:false};this.message='';
   this.work=new Workbench({client:this.team.backend.client,getState:this.getState,getOwner:this.getOwner,onChange:()=>this.redraw()});
   this.analysis=new AudioAnalysis({getGraph:this.getGraph,getBlob:this.getBlob,getOwner:this.getOwner});
   this.backups=new BackupManager({bridge:this.bridge,getState:this.getState,getOwner:this.getOwner,getBlob:this.getBlob,canRun:this.canBackup,beforeBackup:this.beforeBackup,restore:this.restoreBackup,saveSettings:()=>this.persist(false,true),onChange:()=>{const e=document.querySelector('#plus-backup-status');if(e)e.textContent=this.backups.message;}});
@@ -26,7 +26,7 @@ export class StudioPlus{
  redraw(){if(location.hash.startsWith('#studio/work'))this.render();}
  sync(){
   const owner=this.getOwner()?.id||null;if(this.owner!==owner){this.owner=owner;this.journal.mark(this.getState(),owner);this.analysis.setOwner(owner);this.work.setOwner(this.getOwner());this.selection='';this.commentsTrack='';this.wave=null;this.waveId='';this.roomPreferences=null;this.roomStatus=null;this.zip=null;this.live={id:'',pauses:[],locked:true,enabled:false,waiting:false};this.backups.items=[];this.draftSkin=skinInput();this.draftScene=sceneInput();if(owner){this.work.load().catch(e=>{this.message=e.message;});this.backups.load().catch(()=>{});const p=this.settings();if(this.bridge?.backupBegin&&!p.backup.initialized){p.backup.auto=true;p.backup.initialized=true;this.persist(false,true).catch(this.fail);}}}
-  const p=this.settings();this.remote.configure(this.getOwner(),p.remote).catch(e=>{this.remote.message=e.message;});const skin=p.skins.find(s=>s.id===p.selectedSkinId);applySkin(document.querySelector('.player'),skin||{},this.getState().appearance.player.skin==='custom'&&!!skin);this.spotify.preferredDevice=p.spotify.device;this.visualizer.configureScene(p.scenes.find(s=>s.id===p.selectedSceneId)||null);
+  const p=this.settings();this.remote.configure(this.getOwner(),{...p.remote,deviceId:this.deviceId}).catch(e=>{this.remote.message=e.message;});const skin=p.skins.find(s=>s.id===p.selectedSkinId);applySkin(document.querySelector('.player'),skin||{},this.getState().appearance.player.skin==='custom'&&!!skin);this.spotify.preferredDevice=p.spotify.device;this.visualizer.configureScene(p.scenes.find(s=>s.id===p.selectedSceneId)||null);
  }
  capture(){return this.journal.capture(this.getState(),this.getOwner()?.id);}
  mark(){this.journal.mark(this.getState(),this.getOwner()?.id);}
@@ -133,7 +133,7 @@ export class StudioPlus{
   }
   else if(type==='mascot'){p.mascot={enabled:f.has('enabled'),intensity:Math.max(0,Math.min(2,Number(data.intensity)||0))};await this.persist(false,true);}
   else if(type==='room'){this.roomPreferences=await this.team.api('/api/listen-preferences','PATCH',{mode:data.mode,code:data.code,invitedDiscordIds:String(data.invited||'').split(/[\s,;]+/).filter(Boolean),roomId:this.listening.hostRoom?.id});if(this.owner!==owner)return;this.message='Hörraum-Freigabe gespeichert.';await this.loadRoom();this.render();}
-  else if(type==='remote'){await this.remote.close();Object.assign(p.remote,{enabled:f.has('enabled'),label:data.label});await this.persist(false,true);await this.remote.configure(this.getOwner(),{...p.remote,deviceId:p.remote.deviceId});this.sync();this.render();}
+  else if(type==='remote'){await this.remote.close();Object.assign(p.remote,{enabled:f.has('enabled'),label:data.label});await this.persist(false,true);await this.remote.configure(this.getOwner(),{...p.remote,deviceId:this.deviceId});this.sync();this.render();}
  }
  bind(root=document){
   for(const form of root.querySelectorAll('[data-plus-form]'))form.onsubmit=async e=>{e.preventDefault();const b=form.querySelector('button[type=submit],button:not([type])');if(b)b.disabled=true;try{await this.submit(form.dataset.plusForm,form);}catch(e){this.fail(e);}finally{if(b?.isConnected)b.disabled=false;}};

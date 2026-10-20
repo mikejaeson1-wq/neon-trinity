@@ -1,0 +1,9 @@
+import test from 'node:test';import assert from 'node:assert/strict';import {parseHTML} from 'linkedom';import 'fake-indexeddb/auto';import {MobilePlus} from '../app/mobile-plus.mjs';
+test('Handy-Oberfläche lädt Band-MP3s bewusst offline und blendet die Sammlung beim Konto-Wechsel aus',async()=>{
+ const {window,document}=parseHTML('<html><body><section id="offline-section"></section><section id="remote-section"></section></body></html>');globalThis.window=window;globalThis.document=document;const saved=new Map();globalThis.localStorage={getItem:k=>saved.get(k)||null,setItem:(k,v)=>saved.set(k,v)};Object.defineProperty(globalThis,'navigator',{value:{storage:{persist:async()=>true}},configurable:true});let owner={id:'dex',alias:'Dex'},played,message;
+ const plus=new MobilePlus({client:{},getOwner:()=>owner,isVerified:()=>true,playOffline:async(id,ids)=>played={id,ids},onMessage:v=>message=v,selectTab:()=>{}});plus.tracks=()=>[{id:'song',title:'<script>Band Song</script>',artist:'Dex',blobId:'mp3',duration:80}];plus.music.getBlob=async()=>new Blob(['ID3 music'],{type:'audio/mpeg'});await plus.setOwner(owner);
+ await plus.act('download',{dataset:{id:'song'}});assert.match(message,/offline gespeichert/);assert.equal(document.querySelector('#offline-section script'),null);assert.match(document.querySelector('#offline-section').textContent,/Band Song/);
+ await plus.act('offline-play',{dataset:{id:'song'}});assert.deepEqual(played,{id:'song',ids:['song']});
+ owner={id:'nix',alias:'Nix'};await plus.setOwner(owner);assert.ok(!document.querySelector('#offline-section').textContent.includes('Band Song'));assert.equal(plus.remote.devices.length,0);
+ owner={id:'dex',alias:'Dex'};await plus.setOwner(owner);assert.match(document.querySelector('#offline-section').textContent,/Band Song/);await plus.act('offline-remove',{dataset:{id:'song'}});assert.equal(plus.music.rows.length,0);clearInterval(plus.timer);
+});
