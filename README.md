@@ -1,4 +1,16 @@
-# Neon Trinity Studio 0.8.1 · Supabase Edition
+# Neon Trinity Studio 0.9.0 · Supabase Edition
+
+Version 0.9 adds a Suno download bridge. Suno opens in the user's normal browser;
+the Windows app imports completed MP3s from an explicitly chosen local folder,
+manually or automatically while the Studio runs. Folder preferences and import
+marks are local and Discord-account-bound. The Studio never reads Suno cookies,
+session tokens or account-library endpoints. The regular Suno download remains
+subject to the user's plan. Browser users can select their downloaded MP3s manually.
+
+Private songs have a new context action, “In Bandmediathek kopieren”. It creates
+independent audio and cover blobs for the shared catalog and keeps the private
+original unchanged. Existing privacy filters remain in place; only the explicit
+copy is uploaded. Duplicate audio is recognized by its SHA-256 digest.
 
 Windows music studio for Dex, Nix and Jax. Shared songs, albums, artwork, playlists and performances live in the dedicated Supabase project. Authentication uses Discord OAuth with PKCE. Only three explicitly allowed Discord provider identities can access the band's data.
 

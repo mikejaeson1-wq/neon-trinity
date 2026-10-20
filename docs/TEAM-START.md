@@ -1,4 +1,4 @@
-# Neon Trinity Studio 0.8.1 · Supabase Edition
+# Neon Trinity Studio 0.9.0 · Supabase Edition
 
 Dex, Nix und Jax nutzen dieselbe Mediathek über ihre eigenen Discord-Konten. Das eigene Supabase-Projekt „neon-trinity“ ist bereits angelegt und in der App eingestellt. Ein eigener Teamserver und eine Kommandozeilen-Einrichtung sind nicht erforderlich.
 
@@ -230,3 +230,19 @@ Album-MP3s werden mit 44,1 kHz und normalerweise 128 kbit/s erzeugt. Bei langen 
 Das Studio sendet laufende Bandmusik ausdrücklich als Listening / Hört, niemals als Playing / Spielt. Bei Pause, Leerlauf und privaten Quellen wird die eigene Aktivität entfernt. Titel, Interpret, Fortschritt, Bandlogo und gegebenenfalls der Mithör-Link werden zusammen mit der Hör-Aktivität übertragen. Die Verbindungsprüfung unter Team & Discord zeigt jetzt sowohl den gesendeten als auch den tatsächlich von Discord zurückgemeldeten Typ. Wenn Discord keinen Typ zurückgibt, wird das ausdrücklich angezeigt.
 
 Falls zusätzlich Spielt Neon Trinity erscheint, kann ein zuvor manuell hinzugefügter Eintrag der automatischen Spielerkennung aktiv sein. Beende das Studio, öffne Discord → Einstellungen → Registrierte Spiele und entferne den alten Studio-Eintrag. Starte das Studio erneut und wähle Team & Discord → Discord neu verbinden. Die automatische Spielerkennung und persönliche Aktivitätsfreigabe werden von Discord verwaltet und lassen sich vom Studio nicht zwangsweise umstellen. Die integrierte offizielle Spotify-Kontoverbindung von Discord bleibt eine separate Funktion.
+
+## 22. Suno-Downloads zuerst privat, danach als Bandkopie
+
+Ab Version 0.9.0 findest du links Suno-Import. Melde dich im Studio mit deinem eigenen Discord-Konto an. Suno öffnen startet die offizielle Suno-Website im normalen Browser; deine dortige Anmeldung bleibt bei Suno. Eine automatische Kontobibliothek-Abfrage ist in dieser Version nicht enthalten.
+
+Windows-App: Wähle unter Suno-Import → Download-Ordner wählen einen eigenen Ordner für deine Suno-MP3s. Bei Suno am gewünschten Song ⋯ → Download → MP3 wählen und die Datei in genau diesem Ordner speichern. Falls dein Browser ohne Rückfrage herunterlädt, kannst du dessen Download-Ordner wählen oder in den Browser-Einstellungen die Nachfrage nach dem Speicherort einschalten. Downloads prüfen zeigt fertige MP3s. Privat importieren übernimmt eine vorhandene Datei; MP3-Dateien auswählen erlaubt auch die Mehrfachauswahl.
+
+Mit Neue MP3s automatisch privat importieren übernimmt das Studio neue fertige MP3s aus dem gewählten Ordner, solange die Windows-App läuft, auch minimiert. Bereits vorhandene Dateien werden bei der Aktivierung nicht automatisch übernommen; diese kannst du einzeln oder über die Dateiauswahl importieren. Noch laufende Browserdownloads, Verknüpfungen, andere Dateitypen und Dateien über 48 MiB werden übersprungen. Die Automatik liest nur den direkt gewählten Ordner, keine Unterordner. Ein ZIP-Sammeldownload von Suno muss zuerst entpackt werden.
+
+Die Songdatei bleibt unverändert und wird zunächst ausschließlich unter Privat & lokal für dein Discord-Konto auf diesem Gerät gespeichert. Gleiche Audiodateien werden in deiner lokalen Sammlung anhand ihrer Prüfsumme erkannt. Titel und Interpret kannst du anschließend im Studio bearbeiten. Andere Bandmitglieder sehen weder die private Datei noch deinen Suno-Ordner.
+
+Um einen Song mit Dex, Nix und Jax zu teilen: Privat & lokal öffnen → Rechtsklick auf den Song → In Bandmediathek kopieren. Dadurch entstehen eine eigene Band-MP3 und gegebenenfalls eine eigene Coverkopie. Das private Original bleibt erhalten; seine lokalen Playlists bleiben privat. Die Bandkopie erscheint nach dem normalen Abgleich bei allen drei Bandkonten und kann für Bandalben, Bandplaylists und Musikbox-Links genutzt werden. Der Kopiervorgang veröffentlicht noch kein öffentliches Album und noch keinen Musikbox-Link. Eine schon vorhandene Bandkopie derselben Audiodatei wird wiederverwendet.
+
+Ordnerimport trennen stoppt die Automatik und entfernt die gespeicherte Ordnerverbindung und Importmarkierungen für dein Konto. Bereits importierte Songs bleiben in Privat & lokal und können dort gelöscht werden. Im Browser-Studio wählst du die von Suno heruntergeladenen MP3s manuell aus; die Rechtsklick-Bandkopie ist auch dort verfügbar.
+
+Der Import verwendet reguläre Suno-Downloads. Die Download-Freigaben und Kontingente deines Suno-Kontos gelten weiterhin. Das Studio umgeht diese nicht und liest keine Suno-Kennwörter, Cookies oder Sitzungsschlüssel aus.

@@ -1,4 +1,4 @@
-const { app, BrowserWindow, ipcMain, protocol, net, shell, safeStorage, Menu, screen } = require('electron');
+const { app, BrowserWindow, ipcMain, protocol, net, shell, safeStorage, Menu, screen, dialog } = require('electron');
 const path = require('node:path');
 const fs = require('node:fs/promises');
 const { pathToFileURL } = require('node:url');
@@ -7,6 +7,7 @@ const {DiscordPresence}=require('./discord.cjs');
 const {DesktopCloud}=require('./team.cjs');
 const {roomFromArguments,listeningRoomFromURL}=require('./deep-link.cjs');
 const {DesktopSpotify,imageURL}=require('./spotify.cjs');
+const {SunoDownloads}=require('./suno-downloads.cjs');
 let playerSettings;
 const {StudioUpdater}=require('./updates.cjs');
 const {autoUpdater}=require('electron-updater');
@@ -19,6 +20,7 @@ let token='';
 let miniMeasuredHeight=0,miniSettingsOpen=false,miniWindow,quitting=false,playerState={paused:true};
 const team=new DesktopCloud({app,safeStorage,shell});
 const spotify=new DesktopSpotify({app,safeStorage,shell});
+const suno=new SunoDownloads({app,dialog,isOwner:owner=>{try{return spotifyOwner(owner)===owner;}catch{return false;}}});
 const presence=new DiscordPresence(message=>{if(window&&!window.isDestroyed())window.webContents.send('discord-status',message);});
 const tokenPath=()=>path.join(app.getPath('userData'),'github-token.enc');
 function secureStorageAvailable(){return safeStorage.isEncryptionAvailable() && (process.platform!=='linux'||safeStorage.getSelectedStorageBackend()!=='basic_text');}
@@ -27,7 +29,7 @@ function trusted(event){const u=event.senderFrame&&new URL(event.senderFrame.url
 if(primaryInstance)app.whenReady().then(async()=>{
   if(app.isPackaged)app.setAsDefaultProtocolClient('neontrinity');
   token=await readToken();
-  playerSettings=await import('../app/player-settings.mjs');await team.load();await spotify.load();
+  playerSettings=await import('../app/player-settings.mjs');await team.load();await spotify.load();await suno.load();
   if(team.config.discordClientId)presence.configure(team.config.discordClientId);
   const appRoot=path.resolve(__dirname,'../app');
   protocol.handle('ntapp',request=>{
@@ -51,6 +53,12 @@ if(primaryInstance)app.whenReady().then(async()=>{
   });
   const handle=(name,fn)=>ipcMain.handle(name,async(event,...args)=>{trusted(event);try{return {ok:true,value:await fn(...args)};}catch(error){return {ok:false,message:error.message,status:error.status||0,data:error.data};}});
   handle('spotify:status',owner=>spotify.status(spotifyOwner(owner)));
+  handle('suno:status',owner=>suno.status(spotifyOwner(owner)));
+  handle('suno:choose',owner=>suno.choose(spotifyOwner(owner)));
+  handle('suno:forget',owner=>suno.forget(spotifyOwner(owner)));
+  handle('suno:configure',(auto,owner)=>suno.configure(spotifyOwner(owner),auto));
+  handle('suno:scan',owner=>suno.scan(spotifyOwner(owner)));
+  handle('suno:read',(id,owner)=>suno.read(spotifyOwner(owner),id));
   handle('spotify:configure',(id,owner)=>spotify.configure(spotifyOwner(owner),id));
   handle('spotify:login',(id,owner)=>spotify.startLogin(spotifyOwner(owner),id));
   handle('spotify:poll-login',owner=>spotify.pollLogin(spotifyOwner(owner)));
