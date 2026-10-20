@@ -1,6 +1,6 @@
-# Neon Trinity Studio 1.0.0
+# Neon Trinity Studio 1.0.1
 
-Das Gesamtupdate verbindet Player, Bandarbeit, Hörsessions und die Handy-App.
+Das Gesamtupdate verbindet Player, Bandarbeit, Hörsessions und die Handy-App. Version 1.0.1 ergänzt die notwendige Netzwerkfreigabe für die tatsächliche Website-Statusprüfung.
 
 - **Sicherungen und Papierkorb:** vollständige kontogetrennte Ordnersicherungen mit MP3s, Covern und Prüfsummen; automatischer Zeitplan; vorbereitete, atomare Wiederherstellung; Verlauf für die letzten 60 Änderungen mit Prüfung auf zwischenzeitliche Bearbeitung.
 - **Privatsphäre und Status:** Discord-Titelanzeige und Mithören getrennt steuern, auch je Song; tatsächliche Verbindungsprüfungen für Supabase, Discord, Spotify, Website, Sicherungen und Updates.
@@ -17,7 +17,7 @@ Das Gesamtupdate verbindet Player, Bandarbeit, Hörsessions und die Handy-App.
 
 Die installierte Windows-App findet das Update über den vorhandenen Update-Kanal. Vor dem Installieren aus Version 1.0 wird bei angemeldetem Bandkonto eine vollständige Sicherung erstellt.
 
-Für eine Rückkehr zu einer früheren Version werden nur geprüfte 1.0-Versionen mit identischem Datenformat angeboten. Bei der ersten 1.0-Veröffentlichung ist entsprechend noch keine frühere kompatible Version verfügbar.
+Für eine Rückkehr zu einer früheren Version werden nur geprüfte 1.0-Versionen mit identischem Datenformat angeboten. Version 1.0.0 bildet die erste kompatible Basis; das Studio bietet nur tatsächlich veröffentlichte und geprüfte frühere Versionen an.
 
 Die Pipeline unterstützt Windows-Zertifikate und Azure Trusted Signing und prüft eine konfigurierte Signatur auf App und Installer. Eine echte Herausgebersignatur setzt ein hinterlegtes gültiges Zertifikat bzw. einen eingerichteten Signaturdienst voraus.
 

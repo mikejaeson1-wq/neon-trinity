@@ -12,5 +12,5 @@ for(const folder of ['app','desktop','scripts','tests','supabase','docs'])await 
 for(const name of ['package.json','electron-builder.config.cjs','.gitignore','README.md','Starten.cmd','Windows-App-bauen.cmd','Team-einrichten.cmd','Teamstart.cmd','pnpm-workspace.yaml'])await add(name);
 await add('.github/workflows/windows-release.yml');await add('.github/workflows/studio-checks.yml');
 for(const name of ['pnpm-lock.yaml','package-lock.json'])try{await add(name);}catch(error){if(error.code!=='ENOENT')throw error;}
-await writeFile(path.join(root,'app/source-bundle.json'),JSON.stringify({generator:'neon-trinity-source',version:'1.0.0',files}));
+await writeFile(path.join(root,'app/source-bundle.json'),JSON.stringify({generator:'neon-trinity-source',version:'1.0.1',files}));
 console.log(`Quellcodepaket vorbereitet: ${files.length} Dateien`);
