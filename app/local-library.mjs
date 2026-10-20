@@ -1,6 +1,7 @@
 import {validateRecord,validId} from './shared.mjs';
 
-// Personal audio is intentionally absent from the shared catalog and Supabase.
+// Originals and playlists stay out of the shared catalog. Live listening stages
+// only the currently selected MP3 separately; see listen-media.mjs.
 export const ownLocalTracks=(state,owner)=>owner?(state.localTracks||[]).filter(t=>t.ownerId===owner):[];
 export const ownLocalPlaylists=(state,owner)=>owner?(state.localPlaylists||[]).filter(p=>p.ownerId===owner):[];
 export const isLocalTrack=(state,key)=>(state.localTracks||[]).some(t=>t.id===key);

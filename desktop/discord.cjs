@@ -5,7 +5,7 @@ const LISTENING=2;
 const LOGO_URL='https://mikejaeson1-wq.github.io/neon-trinity/assets/icon.png';
 function frame(opcode,data){const body=Buffer.from(JSON.stringify(data),'utf8'),header=Buffer.alloc(8);header.writeUInt32LE(opcode,0);header.writeUInt32LE(body.length,4);return Buffer.concat([header,body]);}
 function activityFor(state){
-  if(state?.private||!state?.title||state.paused)return null;
+  if(state?.source==='spotify'||state?.private&&state?.source!=='local'||!state?.title||state.paused)return null;
   const activity={type:LISTENING,status_display_type:2,details:state?.title?String(state.title).slice(0,128):'Im Neon Trinity Studio',state:state?.title?(state.paused?'Pausiert · ':'')+String(state.artist||'Neon Trinity').slice(0,110):'Dex · Nix · Jax',assets:{large_image:LOGO_URL,large_text:'Neon Trinity · Dex, Nix & Jax'}};
   if(state?.title&&!state.paused){activity.timestamps={start:Math.floor(Date.now()/1000-(Number(state.position)||0))};if(state.duration>0)activity.timestamps.end=activity.timestamps.start+Math.floor(state.duration);}
   if(state?.roomUrl){try{const u=new URL(state.roomUrl);if(u.protocol==='https:')activity.buttons=[{label:'Mithören',url:u.href.slice(0,512)}];}catch{}}
@@ -67,7 +67,7 @@ class DiscordPresence{
   }
   connectionMessage(accepted=false){
     if(this.expectedUserId&&this.discordUserId&&this.expectedUserId!==this.discordUserId)return 'Discord verbunden, aber mit einem anderen Konto als im Studio. Bitte in Discord zum selben Konto wechseln.';
-    if(this.state?.private)return 'Discord verbunden · private lokale Songs und Spotify werden vom Studio ausgeblendet.';
+    if(this.state?.source==='spotify'||this.state?.private&&this.state?.source!=='local')return 'Discord verbunden · Spotify und nicht freigegebene Quellen werden vom Studio ausgeblendet.';
     if(!activityFor(this.state))return 'Discord verbunden · ohne laufenden Song wird keine Studio-Aktivität angezeigt.';
     if(accepted&&this.confirmedActivityType!==null&&this.confirmedActivityType!==LISTENING)return 'Discord hat einen anderen Aktivitätstyp bestätigt. Discord aktualisieren und die automatische Spielerkennung für Neon Trinity prüfen.';
     return accepted?(this.confirmedActivityType===LISTENING?'Discord bestätigt „Hört“ · '+String(this.state.title).slice(0,100):'Hör-Aktivität an Discord übertragen · Typ nicht zurückgemeldet.'):'Discord verbunden · Hör-Aktivität wird übertragen …';

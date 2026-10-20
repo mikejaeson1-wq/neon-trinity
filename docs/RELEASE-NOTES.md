@@ -1,20 +1,9 @@
-# Neon Trinity Studio 0.9.0
+# Neon Trinity Studio 0.10.0
 
-Neuer Bereich Suno-Import: Öffne Suno im normalen Browser und lade dort deine
-Songs regulär als MP3 herunter. In der Windows-App wählst du den Download-Ordner;
-fertige MP3s lassen sich einzeln oder automatisch privat importieren. Die
-Automatik übernimmt neue Dateien, solange das Studio läuft, auch minimiert.
-Vorhandene Dateien bleiben manuell auswählbar. Doppelte Audiodateien und noch
-laufende Downloads werden übersprungen. Der Ordnerimport lässt sich wieder trennen.
+Auch eigene lokale MP3s erscheinen jetzt in Discord als Hört-Aktivität mit Titel, Interpret, Fortschritt und Bandlogo. Bei aktivem Mithören verwendet der bisherige Link eine temporäre Kopie ausschließlich des laufenden Songs. Webplayer und installiertes Studio folgen weiterhin Titelwechsel, Pause und Position. Die private Sammlung und ihre Playlists bleiben deinem Konto zugeordnet und werden nicht zur Bandmediathek hinzugefügt.
 
-Unter Privat & lokal gibt es per Rechtsklick In Bandmediathek kopieren. Die Aktion
-erstellt eine eigene Audio- und Coverkopie für Dex, Nix und Jax. Dein privates
-Original und deine lokalen Playlists bleiben erhalten. Erst diese ausdrücklich
-gewählte Bandkopie wird mit Supabase synchronisiert. Bereits vorhandene
-Bandkopien derselben Audiodatei werden wiederverwendet.
+Unter Team & Discord lässt sich das automatische Mithören abschalten. Titelwechsel und Session-Ende entfernen die vorherige temporäre Kopie; ohne Lebenszeichen läuft der Hörlink nach 90 Sekunden ab. Bereits ausgegebene Dateilinks gelten höchstens zwei Minuten. Nach einem Absturz verbliebene Reservierungen werden bei der nächsten Session bereinigt.
 
-Im Browser-Studio kannst du heruntergeladene MP3s manuell auswählen und ebenfalls
-per Rechtsklick eine Bandkopie erstellen. Eine direkte Abfrage deiner Suno-
-Kontobibliothek ist nicht enthalten. Sunos eigene Download-Freigaben gelten weiter.
+Das Studio sendet ausdrücklich den Aktivitätstyp Listening (2). Die Verbindungsprüfung erklärt den Unterschied zwischen Empfangsbestätigung und Sichtbarkeit bei anderen. Discord muss das globale Teilen von Aktivitäten erlauben; einzelne Spiele können separat ausgeblendet werden. Der Hörtyp umgeht keine Discord-Datenschutzeinstellungen. Spotify nutzt weiterhin seine offizielle Kontoverbindung.
 
-Update: Einstellungen → Studio & Updates → Prüfen, herunterladen und installieren.
+Die vorhandenen Suno-Importe, Bandkopien, Playlists, Designs, Spotify-Verbindungen und lokalen Daten bleiben verwendbar. Das Windows-Setup erhält vorhandene App-Daten und wird über den bisherigen Update-Kanal verteilt.

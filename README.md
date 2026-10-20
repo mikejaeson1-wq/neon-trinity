@@ -73,3 +73,11 @@ The studio context menu explicitly publishes immutable MP3 snapshots of a select
 Albums are decoded one track at a time at 44.1 kHz and encoded into one continuous stereo MP3 using the pinned LGPL-3.0 @breezystack/lamejs package. Its source and license are included in the distribution; the package is bundled locally. A module worker handles encoding with a yielding in-process fallback. The upload supports AbortSignal, snapshots are bound to the verified Studio account, and publication is checked before exposing the URL.
 
 Discord emits Listening type 2 with a song-oriented display type, clears paused/idle presence and exposes the acknowledged activity type without inventing a confirmation when the field is absent. Automatic game detection in a user's Discord client remains outside the app's control.
+
+## Private MP3s in Discord und Mithörsessions (0.10.0)
+
+Die Windows-App zeigt auch den laufenden eigenen lokalen Song als Hört-Aktivität mit Bandlogo an. Bei aktivem Mithören wird nur die aktuelle MP3 separat und zeitlich begrenzt in Supabase bereitgestellt. Die ursprüngliche Sammlung und lokale Playlists bleiben privat; die Bandmediathek wird nicht verändert. Der bestehende Gast-Webplayer und Studio-Link folgen weiterhin Titelwechsel, Pause und Position. Zum Ausschalten: Team & Discord → Automatisches Mithören.
+
+Discord muss die globale Aktivitätsfreigabe erlauben. Einzelne Spiele können separat ausgeblendet werden; der Hörtyp hebt die globale Freigabe nicht auf. Der bestätigte RPC-Typ ist in der Verbindungsprüfung sichtbar, die tatsächliche Sichtbarkeit bei anderen kann das Studio nicht feststellen.
+
+Backend: zuerst supabase/listen-private.sql anwenden, danach neon-public mit index.ts und handler.mjs bereitstellen. Der private Bucket nt-listen erlaubt Uploads nur zum eigenen reservierten Pfad. Gäste erhalten ausschließlich für den aktuellen Song einer gültigen Hörsession kurzlebige Dateilinks. Reservierungen ohne aktive Session verfallen; beim nächsten Session-Start werden abgelaufene Reste bereinigt.

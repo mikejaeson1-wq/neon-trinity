@@ -24,9 +24,9 @@ test('Ausgeschalteter Ton, Autoplay-Sperre, Verbindungsverlust und erneuerte Dat
 test('Gleichzeitiges Öffnen erzeugt nur einen Poll und verspätete Antworten können eine verlassene Session nicht neu starten',async()=>{
  let resolve,reads=0,remote=0;const pending=new Promise(r=>resolve=r),team={active:true,api:async()=>{reads++;return pending;}};const session=new ListeningSession({team,getPlayer:()=>({}),onRemote:()=>remote++});const first=session.join('a'.repeat(64)),second=session.join('a'.repeat(64));await new Promise(r=>setImmediate(r));assert.equal(reads,1);await session.leave();resolve(room());await Promise.all([first,second]);assert.equal(remote,0);assert.equal(session.followRoom,null);assert.equal(session.timer,null);
 });
-test('Ein laufender Host-Start wird beim Verlassen gelöscht und private Songs können keine Session anlegen',async()=>{
+test('Ein laufender Host-Start wird beim Verlassen gelöscht und private Songs benötigen eine vorbereitete Mithörfreigabe',async()=>{
  let resolve,posts=0,deletes=0;const pending=new Promise(r=>resolve=r),team={active:true,api:async(_path,method)=>{if(method==='POST'){posts++;return pending;}if(method==='DELETE')deletes++;}};const session=new ListeningSession({team,getPlayer:()=>({trackId:'band-song',position:10,playing:true}),onRemote:()=>{}});const first=session.host(),second=session.host();await new Promise(r=>setImmediate(r));assert.equal(posts,1);await session.leave();resolve({id:'a'.repeat(64),url:'https://band.example/?room='+'a'.repeat(64)});await Promise.all([first,second]);assert.equal(session.hostRoom,null);assert.equal(deletes,1);
- const privateSession=new ListeningSession({team,getPlayer:()=>({trackId:'local-song',private:true,position:0,playing:true}),onRemote:()=>{}});await assert.rejects(privateSession.host(),/Band-Mediathek/);assert.equal(posts,1);
+ const privateSession=new ListeningSession({team,getPlayer:()=>({trackId:'local-song',private:true,position:0,playing:true}),onRemote:()=>{}});await assert.rejects(privateSession.host(),/Mithörfreigabe/);assert.equal(posts,1);
 });
 test('Studio-Protokoll akzeptiert ausschließlich gültige Hörsession-IDs',()=>{
  const id='a1'.repeat(32),link='neontrinity://listen/'+id;assert.equal(listeningRoomFromURL(link),id);assert.equal(roomFromArguments(['app.exe','--unrelated',link]),id);

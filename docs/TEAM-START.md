@@ -1,4 +1,4 @@
-# Neon Trinity Studio 0.9.0 · Supabase Edition
+# Neon Trinity Studio 0.10.0 · Supabase Edition
 
 Dex, Nix und Jax nutzen dieselbe Mediathek über ihre eigenen Discord-Konten. Das eigene Supabase-Projekt „neon-trinity“ ist bereits angelegt und in der App eingestellt. Ein eigener Teamserver und eine Kommandozeilen-Einrichtung sind nicht erforderlich.
 
@@ -102,13 +102,13 @@ Beim Erstellen einer Playlist wählt ihr unter Sichtbarkeit: Für die Band oder 
 
 ## Private lokale Mediathek (ab 0.5.0)
 
-Öffne **Privat & lokal**, melde dich mit deinem eigenen Discord-Konto an und wähle **Private MP3s importieren**. Dateien, Titel und Cover bleiben auf diesem Gerät. Hier abgelegte Musik wird nicht in Supabase gespeichert, nicht auf Albumseiten veröffentlicht und nicht als Discord-Aktivität angezeigt. Die gemeinsame Band-Mediathek bleibt ein eigener Bereich.
+Öffne **Privat & lokal**, melde dich mit deinem eigenen Discord-Konto an und wähle **Private MP3s importieren**. Dateien, Titel und Cover bleiben auf diesem Gerät. Die Sammlung wird nicht mit der Bandmediathek synchronisiert oder auf Albumseiten veröffentlicht. Ab Version 0.10.0 erscheint der laufende Song als Discord-Höraktivität. Bei aktivem Mithören wird ausschließlich die aktuelle MP3 vorübergehend bereitgestellt; Näheres im nächsten Abschnitt. Die gemeinsame Band-Mediathek bleibt ein eigener Bereich.
 
 Für diese MP3s gibt es **lokale Playlists**, die nur dein Konto auf diesem Gerät sieht. Bandplaylists und persönliche Playlists mit geräteübergreifendem Abgleich können nur Band-Songs enthalten. Beim Abmelden oder Konto-Wechsel stoppt ein privater Song und die private Sammlung wird ausgeblendet. Dein vollständiges Backup enthält deine eigene lokale Sammlung; lokale Dateien anderer Konten werden ausgelassen. Für eine Wiederherstellung persönlicher MP3s melde dich mit dem zugehörigen Discord-Konto an.
 
 ## Automatisch gemeinsam hören
 
-Band-Songs starten nach der Discord-Anmeldung automatisch eine Hörsession. Unter **Team & Discord** kannst du das ausschalten oder die Session beenden. Private lokale Songs beenden eine bestehende Hörsession und werden nie dafür freigegeben. Ein Hörlink gibt den laufenden Band-Song an jeden weiter, der diesen Link besitzt, auch ohne Bandkonto.
+Band-Songs und eigene lokale MP3s starten nach der Discord-Anmeldung automatisch eine Hörsession. Unter **Team & Discord** kannst du das ausschalten oder die Session beenden. Für private lokale Songs wird nur die laufende MP3 samt Titel, Interpret und Dauer in einen separaten privaten Supabase-Speicher kopiert. Deine Sammlung, Cover und lokalen Playlists werden nicht übertragen. Ein Hörlink gibt den aktuell freigegebenen Song an jeden weiter, der diesen Link besitzt, auch ohne Bandkonto. Eine Übernahme in die Bandmediathek erfolgt dadurch nicht. Beim Titelwechsel oder Session-Ende wird die vorherige Kopie gelöscht. Nach Absturz oder Verbindungsabbruch endet der Hörlink nach 90 Sekunden; ausgegebene Dateilinks gelten höchstens zwei Minuten. Verbliebene Kopien werden beim nächsten Session-Start bereinigt.
 
 Mit laufendem Discord Desktop und aktivierter Aktivitätsfreigabe erscheint ein **Mithören**-Button in der Aktivität. Das ist ein eigener Link-Button. Die spezielle native Spotify-Integration wird nicht nachgebildet. Discord entscheidet über die Darstellung; eigene Aktivitätsbuttons sind unter Umständen nur bei anderen Nutzern sichtbar.
 
@@ -227,9 +227,9 @@ Album-MP3s werden mit 44,1 kHz und normalerweise 128 kbit/s erzeugt. Bei langen 
 
 ## 21. Discord als Hör-Aktivität
 
-Das Studio sendet laufende Bandmusik ausdrücklich als Listening / Hört, niemals als Playing / Spielt. Bei Pause, Leerlauf und privaten Quellen wird die eigene Aktivität entfernt. Titel, Interpret, Fortschritt, Bandlogo und gegebenenfalls der Mithör-Link werden zusammen mit der Hör-Aktivität übertragen. Die Verbindungsprüfung unter Team & Discord zeigt jetzt sowohl den gesendeten als auch den tatsächlich von Discord zurückgemeldeten Typ. Wenn Discord keinen Typ zurückgibt, wird das ausdrücklich angezeigt.
+Das Studio sendet laufende Bandmusik und eigene lokale MP3s ausdrücklich als Listening / Hört, niemals als Playing / Spielt. Bei Pause, Leerlauf und Spotify-Wiedergabe wird die eigene Aktivität entfernt. Titel, Interpret, Fortschritt, Bandlogo und gegebenenfalls der Mithör-Link werden zusammen mit der Hör-Aktivität übertragen. Die Verbindungsprüfung unter Team & Discord zeigt jetzt sowohl den gesendeten als auch den tatsächlich von Discord zurückgemeldeten Typ. Wenn Discord keinen Typ zurückgibt, wird das ausdrücklich angezeigt.
 
-Falls zusätzlich Spielt Neon Trinity erscheint, kann ein zuvor manuell hinzugefügter Eintrag der automatischen Spielerkennung aktiv sein. Beende das Studio, öffne Discord → Einstellungen → Registrierte Spiele und entferne den alten Studio-Eintrag. Starte das Studio erneut und wähle Team & Discord → Discord neu verbinden. Die automatische Spielerkennung und persönliche Aktivitätsfreigabe werden von Discord verwaltet und lassen sich vom Studio nicht zwangsweise umstellen. Die integrierte offizielle Spotify-Kontoverbindung von Discord bleibt eine separate Funktion.
+Falls zusätzlich Spielt Neon Trinity erscheint, kann ein zuvor manuell hinzugefügter Eintrag der automatischen Spielerkennung aktiv sein. Beende das Studio, öffne Discord → Einstellungen → Registrierte Spiele und entferne den alten Studio-Eintrag. Starte das Studio erneut und wähle Team & Discord → Discord neu verbinden. Die automatische Spielerkennung und persönliche Aktivitätsfreigabe werden von Discord verwaltet und lassen sich vom Studio nicht zwangsweise umstellen. Die integrierte offizielle Spotify-Kontoverbindung von Discord bleibt eine separate Funktion. Laut Discord gelten die globalen Aktivitätseinstellungen auch für verbundene Dienste. Schalte „Meine Aktivitäten teilen“ ein und blende unerwünschte Spiele einzeln unter Registrierte Spiele aus. Ein bestätigter Empfang der Höraktivität garantiert nicht deren Sichtbarkeit bei anderen; das Studio kann die Discord-Datenschutzeinstellungen weder auslesen noch übersteuern.
 
 ## 22. Suno-Downloads zuerst privat, danach als Bandkopie
 
