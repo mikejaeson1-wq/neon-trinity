@@ -1,8 +1,8 @@
 {
   "name": "neon-trinity-studio",
-  "version": "0.10.0",
+  "version": "1.0.0",
   "private": true,
-  "description": "Neon Trinity – Musik, Suno-Import und private Mithörsessions für Dex, Nix und Jax",
+  "description": "Neon Trinity – Musikwerkstatt, Hörsessions und persönlicher Player für Dex, Nix und Jax",
   "author": "Neon Trinity",
   "main": "desktop/main.cjs",
   "scripts": {
@@ -12,8 +12,8 @@
     "build:web": "node scripts/build.mjs",
     "prebuild:win": "node scripts/build-vendor.mjs && node scripts/prepare-source.mjs",
     "prebuild:installer": "node scripts/build-vendor.mjs && node scripts/prepare-source.mjs",
-    "build:win": "electron-builder --win nsis --x64",
-    "build:installer": "electron-builder --win nsis --x64",
+    "build:win": "electron-builder --config electron-builder.config.cjs --win nsis --x64",
+    "build:installer": "electron-builder --config electron-builder.config.cjs --win nsis --x64",
     "team:setup": "node scripts/setup-supabase.mjs",
     "build:vendor": "node scripts/build-vendor.mjs"
   },

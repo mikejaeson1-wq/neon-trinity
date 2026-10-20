@@ -57,7 +57,7 @@ export class SupabaseBackend{
  async download(id,catalog){const asset=catalog.assets.find(a=>a.id===id&&a.provider==='supabase');if(!asset)throw new Error('Die Datei ist noch nicht in der gemeinsamen Mediathek gespeichert.');return check(await this.client.storage.from(CLOUD.bucket).download(asset.path));}
  async publish(albumIds,theme){
   if(!Array.isArray(albumIds)||albumIds.some(x=>!validId(x)))throw new Error('Ungültige Albumauswahl.');
-  const catalog=(await this.catalog()).data,rows=[];
+  const catalog=(await this.catalog()).data,rows=[],work=check(await this.client.from('nt_workbench').select('record_kind,record_id,lyrics,credits').eq('record_kind','track'));
   for(const id of [...new Set(albumIds)]){
    const album=catalog.albums.find(a=>a.id===id);if(!album)throw new Error('Ein Album wurde inzwischen entfernt. Bitte erneut abgleichen.');
    const tracks=album.trackIds.map(id=>catalog.tracks.find(t=>t.id===id)).filter(Boolean);
@@ -65,7 +65,7 @@ export class SupabaseBackend{
    const ids=new Set([album.coverBlobId,...tracks.flatMap(t=>[t.blobId,t.coverBlobId])].filter(Boolean));
    const assets=[...ids].map(id=>catalog.assets.find(a=>a.id===id&&a.provider==='supabase'));
    if(assets.some(a=>!a))throw new Error('Eine Datei fehlt in Supabase. Bitte die Mediathek zuerst synchronisieren.');
-   rows.push({id,data:{album,tracks,assets,theme:THEMES[theme]?theme:'trinity'},asset_paths:assets.map(a=>a.path),updated_at:new Date().toISOString()});
+   rows.push({id,data:{album,tracks,assets,work:work.filter(w=>tracks.some(t=>t.id===w.record_id)).map(w=>({id:w.record_id,lyrics:w.lyrics,credits:w.credits})),theme:THEMES[theme]?theme:'trinity'},asset_paths:assets.map(a=>a.path),updated_at:new Date().toISOString()});
   }
   if(rows.length)check(await this.client.from('nt_releases').upsert(rows));
   const existing=check(await this.client.from('nt_releases').select('id'));

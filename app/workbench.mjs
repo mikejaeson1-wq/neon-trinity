@@ -13,8 +13,8 @@ export function lyricCues(text){
 export function activeLyric(cues,position){let selected=-1;for(let i=0;i<cues.length&&cues[i].at<=position;i++)selected=i;return selected;}
 const check=r=>{if(r.error)throw new Error(r.error.message||'Die Musikwerkstatt konnte nicht gespeichert werden.');return r.data;};
 export class Workbench{
- constructor({client,getState,getOwner,onChange=()=>{}}){Object.assign(this,{client,getState,getOwner,onChange});this.rows=[];this.comments=[];this.generation=0;this.owner=null;this.loaded=false;this.busy=false;}
- setOwner(owner){const id=owner?.id||null;if(id===this.owner)return;this.owner=id;this.generation++;this.rows=[];this.comments=[];this.loaded=false;}
+ constructor({client,getState,getOwner,onChange=()=>{}}){Object.assign(this,{client,getState,getOwner,onChange});this.rows=[];this.comments=[];this.generation=0;this.commentVersion=0;this.owner=null;this.loaded=false;this.busy=false;}
+ setOwner(owner){const id=owner?.id||null;if(id===this.owner)return;this.owner=id;this.generation++;this.commentVersion++;this.rows=[];this.comments=[];this.loaded=false;}
  local(track){return track?.visibility==='local';}
  verify(track){const owner=this.getOwner()?.id;if(!owner||this.local(track)&&track.ownerId!==owner)throw new Error('Dieser Song ist für dein Konto nicht verfügbar.');return owner;}
  value(kind,id,local=false){if(local)return workInput(ownerSettings(this.getState(),this.owner).work[id]);return this.rows.find(r=>r.record_kind===kind&&r.record_id===id)||workInput();}
@@ -29,8 +29,8 @@ export class Workbench{
   this.rows=this.rows.filter(r=>r.record_kind!==kind||r.record_id!==record.id).concat(row);this.onChange();
  }
  async loadComments(track){
-  const owner=this.verify(track),gen=this.generation;if(this.local(track)){this.comments=ownerSettings(this.getState(),owner).work[track.id]?.comments||[];return this.comments;}
-  const rows=check(await this.client.from('nt_song_comments').select('*').eq('track_id',track.id).order('created_at'));if(gen!==this.generation)return [];this.comments=rows;return rows;
+  const owner=this.verify(track),gen=this.generation,version=++this.commentVersion;if(this.local(track)){this.comments=ownerSettings(this.getState(),owner).work[track.id]?.comments||[];return this.comments;}
+  const rows=check(await this.client.from('nt_song_comments').select('*').eq('track_id',track.id).order('created_at'));if(gen!==this.generation||version!==this.commentVersion)return [];this.comments=rows;return rows;
  }
  async comment(track,position,body){
   const owner=this.verify(track),gen=this.generation,text=String(body||'').trim();if(!text||text.length>2000||!Number.isFinite(position)||position<0||position>86400)throw new Error('Bitte einen Kommentar und eine gültige Zeitmarke eingeben.');

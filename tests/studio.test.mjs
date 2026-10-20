@@ -48,3 +48,13 @@ test('Studio bedient Import, Playlist, Album, Auftritt und Theme über echte For
   navigate('settings');click('[data-action="theme"][data-theme="hextech"]');await waitFor(()=>document.documentElement.dataset.theme==='hextech');assert.equal((await loadState()).theme,'hextech');
   assert.match(document.querySelector('main').textContent,/Supabase/);
 });
+
+test('Studio 1.0 bietet Werkzeuge an und behält gelöschte MP3s für die gezielte Wiederherstellung',async()=>{
+ navigate('studio/history');assert.match(document.querySelector('main').textContent,/Rückgängig & Papierkorb/);assert.ok(document.querySelector('[data-plus="history-restore"]'));
+ const state=await loadState(),track=state.tracks[0];navigate('library');click('[data-action="edit-track"][data-id="'+track.id+'"]');document.querySelector('#delete-track').onclick();document.querySelector('#confirm-action').onclick();await waitFor(()=>!document.querySelector('#modal').open);
+ assert.equal((await loadState()).tracks.length,0);const {getBlob}=await import('../app/db.mjs');assert.ok(await getBlob(track.blobId),'Das Original bleibt für den Papierkorb erhalten');
+ navigate('studio/history');click('[data-plus="history-restore"]');await waitFor(()=>document.querySelector('main').textContent.includes('Änderung zurückgenommen'));assert.equal((await loadState()).tracks[0].id,track.id);
+ for(const tab of ['queue','backup','audio','design','rooms','status']){navigate('studio/'+tab);assert.ok(document.querySelector('.plus-tabs'),'Navigation bleibt erreichbar: '+tab);assert.ok(document.querySelector('main').textContent.length>100);}
+ navigate('studio/design');assert.ok(document.querySelector('[data-plus="skin-classic"]'));assert.equal(document.querySelectorAll('[name^="mode"]').length,4);
+ navigate('live');assert.match(document.querySelector('main').textContent,/Bereit für die Bühne/);assert.ok(document.querySelector('[data-plus="live-lock"]'));
+});

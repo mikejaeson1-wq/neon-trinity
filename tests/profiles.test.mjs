@@ -45,3 +45,11 @@ test('Eigene Profilfarbe wird öffentlich gespeichert, validiert und auf jedes B
  const {document}=parseHTML(f.rows.map(row=>profileCard(row,p)).join(''));applyProfileColors(document,f.rows);assert.equal(document.querySelector('[data-artist="dex"]').style.getPropertyValue('--profile-accent'),'#ef8429');assert.equal(document.querySelectorAll('.artist-wordmark').length,3);assert.equal(document.querySelector('.artist-wordmark').getAttribute('aria-label'),'Dex');
  p.setOwner(null);await p.load();assert.equal(p.rows[0].accent_color,'#ef8429');f.client.auth.stopAutoRefresh();
 });
+
+test('Profil-Header und angeheftete Alben bleiben öffentlich; nur veröffentlichte Alben können gewählt werden',async()=>{
+ const f=fixture(),p=new Profiles({client:f.client});p.setOwner({id:'dex',alias:'Dex'});await p.load();p.releases=[{id:'published',title:'Neon Nights'}];
+ await assert.rejects(p.saveExtras({news:'Hello',pinned_release_ids:['private-draft']}),/veröffentlichte/);
+ await p.saveExtras({news:'Neue Songs am Freitag',pinned_release_ids:['published']},new Blob(['header'],{type:'image/webp'}));
+ assert.equal(f.rows[0].news,'Neue Songs am Freitag');assert.equal(f.rows[1].news,undefined);assert.match(f.rows[0].header_path,/^Dex\//);
+ const {document}=parseHTML(profileCard(f.rows[0],p));assert.ok(document.querySelector('.artist-header'));assert.match(document.querySelector('.artist-pins').textContent,/Neon Nights/);assert.match(document.querySelector('.artist-news').textContent,/Freitag/);f.client.auth.stopAutoRefresh();
+});

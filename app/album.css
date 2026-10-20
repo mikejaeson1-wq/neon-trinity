@@ -4,3 +4,5 @@
 @media(max-width:650px){.listen-audio-controls{flex-wrap:wrap;gap:10px}.listen-audio-controls button{font-size:11px;padding:9px 12px}.listen-audio-controls input{width:100px}.listen-stage h1{font-size:30px}.listen-stage .actions{gap:9px}.listen-stage .actions>*{font-size:12px}}
 
 .public-profile-link{color:var(--accent,#a2f972);text-decoration:none;font-size:11px;letter-spacing:1px}
+
+#public-lyric-lines{line-height:1.9;max-height:300px;overflow:auto}#public-lyric-lines [data-public-lyric]{opacity:.45}#public-lyric-lines .active{color:var(--accent,#a2f972);opacity:1;font-weight:700}#room-access{border:1px solid #ffffff25;padding:22px;border-radius:12px}#room-access input,#guest-name{padding:10px;background:#0e1019;color:inherit;border:1px solid #ffffff25;border-radius:7px}#room-people{font-size:13px;opacity:.7}

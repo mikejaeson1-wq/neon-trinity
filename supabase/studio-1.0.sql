@@ -31,6 +31,7 @@ create table public.nt_song_comments (
  author_id uuid not null default auth.uid() references auth.users(id) on delete cascade,
  author_alias text not null default (private.nt_actor()->>'alias') check(author_alias in('Dex','Nix','Jax')),
  position double precision not null check(position>=0 and position<=86400),
+ origin_id uuid unique,origin_alias text check(origin_alias in('Dex','Nix','Jax')),origin_created_at timestamptz,
  body text not null check(length(btrim(body)) between 1 and 2000),
  resolved boolean not null default false,
  created_at timestamptz not null default now()
@@ -40,7 +41,7 @@ create index nt_song_comments_author on public.nt_song_comments(author_id);
 alter table public.nt_song_comments enable row level security;
 revoke all on public.nt_song_comments from public,anon,authenticated;
 grant select,delete on public.nt_song_comments to authenticated;
-grant insert(track_id,position,body) on public.nt_song_comments to authenticated;
+grant insert(track_id,position,body,origin_id,origin_alias,origin_created_at) on public.nt_song_comments to authenticated;
 grant update(resolved) on public.nt_song_comments to authenticated;
 create policy nt_comments_read on public.nt_song_comments for select to authenticated using((select private.nt_is_member()));
 create policy nt_comments_create on public.nt_song_comments for insert to authenticated with check((select private.nt_is_member()) and author_id=(select auth.uid()) and author_alias=(select private.nt_actor()->>'alias'));
@@ -147,7 +148,6 @@ create index nt_room_requests_guest on public.nt_room_requests(guest_id);
 alter table public.nt_room_requests enable row level security;
 revoke all on public.nt_room_requests from public,anon,authenticated;
 
-alter table public.nt_rooms add column transition_seconds double precision not null default 0 check(transition_seconds between 0 and 12);
 
 alter table public.nt_profiles
  add column header_path text not null default '' check(header_path='' or header_path ~ ('^'||alias||'/[a-f0-9-]{36}\.(png|jpg|webp)$')),

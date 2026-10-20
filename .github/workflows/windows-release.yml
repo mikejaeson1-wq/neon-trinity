@@ -30,10 +30,23 @@ jobs:
         run: pnpm run build:installer --publish never
         env:
           CSC_IDENTITY_AUTO_DISCOVERY: 'false'
+          WIN_CSC_LINK: ${{ secrets.WIN_CSC_LINK }}
+          WIN_CSC_KEY_PASSWORD: ${{ secrets.WIN_CSC_KEY_PASSWORD }}
+          WIN_PUBLISHER_NAME: ${{ vars.WIN_PUBLISHER_NAME }}
+          AZURE_CLIENT_SECRET: ${{ secrets.AZURE_CLIENT_SECRET }}
+          AZURE_CLIENT_ID: ${{ vars.AZURE_CLIENT_ID }}
+          AZURE_TENANT_ID: ${{ vars.AZURE_TENANT_ID }}
+          AZURE_SIGN_ENDPOINT: ${{ vars.AZURE_SIGN_ENDPOINT }}
+          AZURE_SIGN_ACCOUNT: ${{ vars.AZURE_SIGN_ACCOUNT }}
+          AZURE_SIGN_PROFILE: ${{ vars.AZURE_SIGN_PROFILE }}
       - name: Installer und Update-Kanal prüfen
         run: node scripts/verify-release.mjs
       - name: Installation und Erhalt lokaler Daten prüfen
         run: ./scripts/test-installer.ps1
+      - name: Signatur und sichere Wiederherstellung dokumentieren
+        run: node scripts/release-metadata.mjs
+        env:
+          NEON_REQUIRE_SIGNATURE: ${{ secrets.WIN_CSC_LINK != '' || secrets.AZURE_CLIENT_SECRET != '' }}
       - name: Neue Version bereitstellen
         run: node scripts/publish-release.mjs
         env:
