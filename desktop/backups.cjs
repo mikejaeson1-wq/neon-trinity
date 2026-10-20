@@ -27,7 +27,7 @@ class StudioBackups{
   const job=await this.job(id,owner),file=job.files.get(blobKey),bytes=input instanceof ArrayBuffer?Buffer.from(input):input instanceof Uint8Array?Buffer.from(input.buffer,input.byteOffset,input.byteLength):null;
   if(!file||!bytes||bytes.length<1||bytes.length>1048576||offset!==file.offset||file.complete||offset+bytes.length>file.size)throw new Error('Ungültiger Sicherungsblock.');
   try{if(!file.handle)file.handle=await fs.open(path.join(job.folder,file.key+'.'+MIME[file.type]),'wx',0o600);let written=0;while(written<bytes.length){const r=await file.handle.write(bytes,written,bytes.length-written,offset+written);if(!r.bytesWritten)throw new Error('Der Sicherungsspeicher ist voll.');written+=r.bytesWritten;}file.hash.update(bytes);file.offset+=bytes.length;
-   if(file.offset===file.size){await file.handle.sync();await file.handle.close();file.handle=null;if(file.hash.digest('hex')!==file.sha)throw new Error('Die Dateiprüfsumme der Sicherung stimmt nicht.');file.complete=true;}this.assert(owner);return {written:file.offset};
+   if(file.offset===file.size){await file.handle.sync();await file.handle.close();file.handle=null;if(file.hash.digest('hex')!==file.sha)throw Object.assign(new Error('Die Dateiprüfsumme der Sicherung stimmt nicht.'),{code:'BACKUP_HASH'});file.complete=true;}this.assert(owner);return {written:file.offset};
   }catch(e){await this.abort(id,owner);throw e;}
  }
  async finish(id,retention,owner){

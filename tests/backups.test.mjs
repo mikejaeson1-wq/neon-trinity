@@ -14,6 +14,6 @@ test('Vollständige Ordnersicherung prüft jeden Block, ist kontogebunden und er
 });
 test('Kontowechsel und falsche Prüfsummen lassen keine vollständige Sicherung zurück',async()=>{
  const folder=await mkdtemp(path.join(os.tmpdir(),'neon-backup-'));let current=dex;const b=new StudioBackups({app:{getPath:()=>folder},isOwner:o=>o===current});
- try{let job=await b.begin(manifest(),dex);current=nix;await assert.rejects(b.write(job.id,'mp3',0,bytes,dex),/anmelden/);assert.equal(b.busy,false);current=dex;assert.equal((await b.list(dex)).length,0);job=await b.begin(manifest(),dex);await assert.rejects(b.write(job.id,'mp3',0,Buffer.alloc(bytes.length,0),dex),/Prüfsumme/);assert.equal(b.busy,false);assert.equal((await b.list(dex)).length,0);const foreign=manifest();foreign.state.localTracks[0].ownerId=nix;await assert.rejects(b.begin(foreign,dex),/anderen Kontos/);}
+ try{let job=await b.begin(manifest(),dex);current=nix;await assert.rejects(b.write(job.id,'mp3',0,bytes,dex),/anmelden/);assert.equal(b.busy,false);current=dex;assert.equal((await b.list(dex)).length,0);job=await b.begin(manifest(),dex);await assert.rejects(b.write(job.id,'mp3',0,Buffer.alloc(bytes.length,0),dex),e=>e.code==='BACKUP_HASH');assert.equal(b.busy,false);assert.equal((await b.list(dex)).length,0);const foreign=manifest();foreign.state.localTracks[0].ownerId=nix;await assert.rejects(b.begin(foreign,dex),/anderen Kontos/);}
  finally{await b.close();await rm(folder,{recursive:true,force:true});}
 });
