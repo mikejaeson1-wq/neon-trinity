@@ -15,7 +15,7 @@ const audio=document.querySelector('#audio');audio.pause=()=>{audio.paused=true;
 globalThis.Audio=class{duration=180;removeAttribute(){}load(){}set src(value){queueMicrotask(()=>this.onloadedmetadata?.());}};
 globalThis.MediaMetadata=class{constructor(data){Object.assign(this,data);}};
 const dialog=document.querySelector('dialog');dialog.showModal=()=>dialog.open=true;dialog.close=()=>dialog.open=false;
-globalThis.FormData=class{constructor(form){this.values=[...form.querySelectorAll('input[name],textarea[name],select[name]')].filter(el=>!['checkbox','radio'].includes(el.type)||el.checked).map(el=>[el.name,el.type==='file'?el.files?.[0]||new File([],''):el.value]);}get(key){return this.values.find(([k])=>k===key)?.[1]??null;}entries(){return this.values[Symbol.iterator]();}};
+globalThis.FormData=class{constructor(form){this.values=[...form.querySelectorAll('input[name],textarea[name],select[name]')].filter(el=>!['checkbox','radio'].includes(el.type)||el.checked).map(el=>[el.name,el.type==='file'?el.files?.[0]||new File([],''):el.value]);}get(key){return this.values.find(([k])=>k===key)?.[1]??null;}has(key){return this.values.some(([k])=>k===key);}entries(){return this.values[Symbol.iterator]();}[Symbol.iterator](){return this.entries();}};
 await import('../app/app.mjs');
 const {loadState}=await import('../app/db.mjs');
 const navigate=route=>{location.hash='#'+route;window.dispatchEvent(new window.Event('hashchange'));};
@@ -57,4 +57,11 @@ test('Studio 1.0 bietet Werkzeuge an und behält gelöschte MP3s für die geziel
  for(const tab of ['queue','backup','audio','design','rooms','status']){navigate('studio/'+tab);assert.ok(document.querySelector('.plus-tabs'),'Navigation bleibt erreichbar: '+tab);assert.ok(document.querySelector('main').textContent.length>100);}
  navigate('studio/design');assert.ok(document.querySelector('[data-plus="skin-classic"]'));assert.equal(document.querySelectorAll('[name^="mode"]').length,4);
  navigate('live');assert.match(document.querySelector('main').textContent,/Bereit für die Bühne/);assert.ok(document.querySelector('[data-plus="live-lock"]'));
+});
+
+test('Eigener Skin und Visualizer-Szene werden über die neuen Formulare gespeichert; Classic bleibt erreichbar',async()=>{
+ navigate('studio/design');const form=document.querySelector('[data-plus-form=skin]');form.querySelector('[name=name]').value='Dex Terminal';form.querySelector('[name=accent]').value='#ee44ff';await form.onsubmit({preventDefault(){}});
+ let state=await loadState(),own=state.studioOwners['local-device'];assert.equal(own.skins[0].name,'Dex Terminal');assert.equal(own.skins[0].accent,'#ee44ff');assert.equal(state.appearance.player.skin,'custom');
+ const scene=document.querySelector('[data-plus-form=scene]');scene.querySelector('[name=name]').value='Neon Pulse';await scene.onsubmit({preventDefault(){}});state=await loadState();assert.equal(state.studioOwners['local-device'].scenes[0].name,'Neon Pulse');
+ click('[data-plus="skin-classic"]');await waitFor(()=>document.querySelector('.player').dataset.skin==='classic');assert.equal((await loadState()).appearance.player.skin,'classic');
 });
