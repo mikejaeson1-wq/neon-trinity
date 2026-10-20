@@ -1,6 +1,6 @@
 # Gesamtupdate 1.0
 
-Gemeinsame Veröffentlichung der 25 vereinbarten Funktionen. Entwicklung auf studio-1.0; main bleibt bis zur fertigen Integration beim freigegebenen Stand.
+Gesamtupdate der 25 vereinbarten Funktionen. Die neuen Werkzeuge findest du unter „Studio-Werkzeuge“, die großen Live-Steuerungen im „Bühnenmodus“. Im Player öffnet ◉ die Freigabe des laufenden Songs. Die Handy-App behält ihren bisherigen QR-Code und ihre Adresse.
 
 1. Automatische vollständige Backups
 2. Papierkorb und Rückgängig
@@ -29,3 +29,5 @@ Gemeinsame Veröffentlichung der 25 vereinbarten Funktionen. Entwicklung auf stu
 25. Handy-Fernbedienung
 
 Windows-Herausgebersignaturen benötigen ein zum Herausgeber passendes Signaturzertifikat. Die Pipeline darf eine fehlende Signatur nicht als erfolgreich signiert ausgeben. Private Originaldateien, Kontositzungen und lokale Playlists werden nicht in den Bandkatalog übernommen.
+
+Der Windows-Installer, erneute Installation mit Erhalt bestehender Daten und der Start der installierten Oberfläche werden vor Veröffentlichung geprüft. Die erste 1.0-Version kann noch keine frühere geprüfte 1.0-Version zur Wiederherstellung anbieten. Für eine tatsächliche Windows-Herausgebersignatur fehlt weiterhin das Zertifikat bzw. der eingerichtete Signaturdienst; vorbereitetes Signing allein ist keine Signatur.

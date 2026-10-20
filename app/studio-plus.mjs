@@ -67,6 +67,9 @@ export class StudioPlus{
  async act(action,b){
   const key=b.dataset.id,p=this.settings(),owner=this.owner;
   if(this.live.enabled&&this.live.locked&&['history-restore','backup-restore','zip-open','zip-import'].includes(action))throw new Error('Bearbeitung ist im Bühnenmodus gesperrt.');
+  if(action==='privacy-open'){
+   const t=this.getTrack();if(!t||['spotify','listen'].includes(this.player().source))throw new Error('Starte zuerst einen Song aus deiner eigenen Mediathek.');const value=playbackPrivacy(this.getState(),owner,t),showAllowed=p.privacy.discord&&(t.visibility!=='local'||p.privacy.localDiscord),listenAllowed=!!this.getOwner()&&(t.visibility!=='local'||p.privacy.localListen);this.modal('<h2>'+h(t.title)+'</h2><p>Anzeige und Mithören für diesen Song getrennt erlauben.</p><form data-plus-form="privacy-quick" data-id="'+h(t.id)+'"><label class="plus-checkbox"><input type="checkbox" name="show" '+checked(value.show)+(showAllowed?'':' disabled')+'>Titel in Discord anzeigen</label><label class="plus-checkbox"><input type="checkbox" name="listen" '+checked(value.listen&&listenAllowed)+(listenAllowed?'':' disabled')+'>Mithören erlauben</label><p>Die allgemeinen Freigaben unter <a href="#studio/audio">Klang & Privatsphäre</a> gelten zusätzlich.</p><button class="button primary">Für diesen Song speichern</button></form>');this.bind(document.querySelector('#modal-content'));return;
+  }
   if(action==='work-load'){await this.work.load();if(this.selection&&this.selectedKind==='track')await this.loadComments();this.render();return;}
   if(action==='work-play'){await this.play(key);return;}
   if(action==='queue-play'){await this.command({command:'queue-play',value:{id:key,source:this.player().source}});return;}
@@ -120,6 +123,7 @@ export class StudioPlus{
  async submit(type,form){
   const f=new FormData(form),data=Object.fromEntries(f),p=this.settings(),owner=this.owner;
   if(this.live.enabled&&this.live.locked&&['work','comment','queue-save','restore'].includes(type))throw new Error('Bearbeitung ist im Bühnenmodus gesperrt.');
+  if(type==='privacy-quick'){const t=this.tracks().find(t=>t.id===form.dataset.id);if(!t)throw new Error('Dieser Song ist nicht mehr verfügbar.');const previous=p.privacy.tracks[t.id]||{};p.privacy.tracks[t.id]={show:form.querySelector('[name=show]').disabled?previous.show!==false:f.has('show'),listen:form.querySelector('[name=listen]').disabled?previous.listen!==false:f.has('listen')};await this.persist(false,true);await this.onPrivacy();this.closeModal();return;}
   if(type==='work'){const record=(this.selectedKind==='track'?this.tracks():this.getState().albums).find(t=>t.id===this.selection);await this.work.save(this.selectedKind,record,data);if(this.owner===owner){await this.persist(false,true);this.message='Fassung gespeichert.';}this.render();}
   else if(type==='comment'){const t=this.tracks().find(t=>t.id===this.selection);await this.work.comment(t,Number(data.position),data.body);if(this.owner===owner){await this.persist(false,true);this.render();}}
   else if(type==='queue-save'){await this.saveQueue(data);this.message='Playlist gespeichert.';this.render();}

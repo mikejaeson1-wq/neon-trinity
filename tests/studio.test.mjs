@@ -65,3 +65,9 @@ test('Eigener Skin und Visualizer-Szene werden über die neuen Formulare gespeic
  const scene=document.querySelector('[data-plus-form=scene]');scene.querySelector('[name=name]').value='Neon Pulse';await scene.onsubmit({preventDefault(){}});state=await loadState();assert.equal(state.studioOwners['local-device'].scenes[0].name,'Neon Pulse');
  click('[data-plus="skin-classic"]');await waitFor(()=>document.querySelector('.player').dataset.skin==='classic');assert.equal((await loadState()).appearance.player.skin,'classic');
 });
+
+test('Die Freigabe direkt am Player schaltet die Discord-Titelanzeige aus, während der Song weiterläuft',async()=>{
+ navigate('library');const state=await loadState(),track=state.tracks[0];click('[data-action="play-track"][data-id="'+track.id+'"]');await waitFor(()=>document.querySelector('#now-playing').textContent.includes(track.title)&&!document.querySelector('#player-sharing').disabled);
+ click('[data-plus="privacy-open"]');const form=document.querySelector('[data-plus-form="privacy-quick"]');assert.ok(form);form.querySelector('[name=show]').checked=false;await form.onsubmit({preventDefault(){}});
+ assert.equal((await loadState()).studioOwners['local-device'].privacy.tracks[track.id].show,false);assert.equal(audio.paused,false);assert.equal(document.querySelector('dialog').open,false);
+});

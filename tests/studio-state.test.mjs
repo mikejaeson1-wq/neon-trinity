@@ -12,3 +12,5 @@ test('Löschen und Bearbeiten sind wiederherstellbar; zwischenzeitliche Änderun
 test('Der Verlauf eines anderen Kontos ist verborgen und darf fremde lokale Einträge nicht wiederherstellen',()=>{
  const s=newState(),j=new StudioJournal();s.localTracks=[{id:'private',ownerId:'dex',title:'Privat',blobId:'secret'}];j.mark(s,'dex');s.localTracks=[];const entry=j.capture(s,'dex');assert.equal(j.entries(s,'nix').length,0);assert.throws(()=>j.restore(s,'nix',entry.id),/nicht für dein Konto/);j.restore(s,'dex',entry.id);assert.equal(s.localTracks[0].ownerId,'dex');
 });
+
+test('Eine ausgeschaltete Titelanzeige erzeugt auch für lokale Musik keine Discord-Aktivität',async()=>{const {activityFor}=await import('../desktop/discord.cjs');assert.equal(activityFor({source:'local',title:'Private MP3',paused:false,hidePresence:true}),null);assert.equal(activityFor({source:'local',title:'Private MP3',paused:false,hidePresence:false}).type,2);});
