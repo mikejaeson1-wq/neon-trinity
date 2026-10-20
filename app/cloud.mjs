@@ -1,3 +1,4 @@
+import {ListeningAPI} from './listen-access.mjs';
 import {createClient} from './vendor/supabase.mjs';
 import {THEMES} from './core.mjs';
 import {CLOUD} from './cloud-config.mjs';
@@ -13,7 +14,7 @@ export function createCloudClient(){
  return createClient(CLOUD.url,CLOUD.key,{auth:{flowType:'pkce',detectSessionInUrl:false,persistSession:true,autoRefreshToken:true,storage,storageKey:'neon-trinity-supabase-auth'},realtime:{params:{eventsPerSecond:2}}});
 }
 export class SupabaseBackend{
- constructor(client=createCloudClient()){this.client=client;this.info={service:'neon-trinity-supabase',configured:true,discordClientId:'',publicBase:CLOUD.publicBase};this.actor=null;}
+ constructor(client=createCloudClient()){this.client=client;this.info={service:'neon-trinity-supabase',configured:true,discordClientId:'',publicBase:CLOUD.publicBase};this.actor=null;this.listeningAPI=new ListeningAPI({client});}
  async status(){const config=check(await this.client.from('nt_config').select('discord_client_id,public_base,spotify_client_id').eq('id',1).single());this.info={...this.info,discordClientId:config.discord_client_id,spotifyClientId:config.spotify_client_id||'',publicBase:config.public_base||CLOUD.publicBase};return this.info;}
  async discordAvailable(){const response=await fetch(CLOUD.url+'/auth/v1/settings',{headers:{apikey:CLOUD.key},cache:'no-store',signal:AbortSignal.timeout(10000)});if(!response.ok)throw new Error('Die Discord-Einrichtung in Supabase konnte gerade nicht geprüft werden.');const data=await response.json();this.info.discordEnabled=data.external?.discord===true;return this.info.discordEnabled;}
  async identity(){const result=check(await this.client.rpc('nt_identity'));this.actor=result;return result;}
@@ -75,11 +76,5 @@ export class SupabaseBackend{
   return {...saved,status:'in Supabase veröffentlicht',url:`${this.info.publicBase}/album.html${albumIds.length?'?id='+encodeURIComponent(albumIds[0]):''}`};
  }
  async setConfig(values){if(this.actor?.alias!=='Dex')throw new Error('Diese Team-Einstellung verwaltet Dex.');check(await this.client.from('nt_config').update(values).eq('id',1).select().single());return this.status();}
- async publicRequest(path,method='GET',data){
-  const session=check(await this.client.auth.getSession())?.session;
-  const headers={apikey:CLOUD.key,'Content-Type':'application/json'};if(session)headers.Authorization='Bearer '+session.access_token;
-  const response=await fetch(`${CLOUD.url}/functions/v1/neon-public${path}`,{method,headers,...(data?{body:JSON.stringify(data)}:{}),signal:AbortSignal.timeout(30000)});
-  const result=await response.json().catch(()=>({error:'Der Supabase-Dienst ist noch nicht erreichbar.'}));
-  if(!response.ok){const error=new Error(result.error||'Die Anfrage ist fehlgeschlagen.');error.status=response.status;throw error;}return result;
- }
+ async publicRequest(path,method='GET',data){return this.listeningAPI.request(path,method,data);}
 }

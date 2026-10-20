@@ -28,7 +28,7 @@ export class AudioVisualizer{
     const gradient=c.createLinearGradient(0,0,w,h);gradient.addColorStop(0,s.color1);gradient.addColorStop(1,s.color2);c.fillStyle=gradient;c.strokeStyle=gradient;
     for(const layer of s.layers){c.save();c.globalAlpha=layer.opacity;c.translate(w/2,h/2);c.scale(layer.scale,layer.scale);c.translate(-w/2,-h/2);
       if(layer.mode==='bars'){for(let i=0;i<64;i++){const height=Math.max(2,value(i)*h*.75);c.fillRect(i*w/64,h-height,w/64-3,height);}}
-      else if(layer.mode==='wave'){c.beginPath();for(let i=0;i<128;i++){const x=i/127*w,y=h/2+Math.sin(i*.14+now*3)*h*.2*value(i%64);i?c.lineTo(x,y):c.moveTo(x,y);}c.stroke();}
+      else if(layer.mode==='wave'){c.beginPath();for(let i=0;i<128;i++){const x=i/127*w,y=h/2+(this.wave&&!this.audio.paused?(this.wave[Math.floor(i/127*(this.wave.length-1))]-128)/128:0)*h*.35;i?c.lineTo(x,y):c.moveTo(x,y);}c.stroke();}
       else if(layer.mode==='orbit'){for(let i=0;i<64;i++){const angle=i/64*Math.PI*2,r=Math.min(w,h)*(.2+value(i)*.25);c.beginPath();c.arc(w/2+Math.cos(angle)*r,h/2+Math.sin(angle)*r,2+value(i)*5,0,Math.PI*2);c.fill();}}
       else for(let i=0;i<70;i++){const x=(Math.sin(i*23.7+now*.17)+1)/2*w,y=(Math.cos(i*8.1+now*.13)+1)/2*h;c.beginPath();c.arc(x,y,1+value(i%64)*7,0,Math.PI*2);c.fill();}
       c.restore();
@@ -42,7 +42,7 @@ export class AudioVisualizer{
     if(!hidden){
       const ratio=Math.min(globalThis.devicePixelRatio||1,2),w=Math.max(300,canvas.clientWidth||900),h=Math.max(180,canvas.clientHeight||390);
       if(canvas.width!==w*ratio||canvas.height!==h*ratio){canvas.width=w*ratio;canvas.height=h*ratio;}
-      c.setTransform(ratio,0,0,ratio,0,0);const s=this.settings,p=visualizerColors(s);c.fillStyle=p.background;c.fillRect(0,0,w,h);
+      c.setTransform(ratio,0,0,ratio,0,0);const s=this.settings,p=visualizerColors(s);c.fillStyle=this.scene?.background||p.background;c.fillRect(0,0,w,h);
       const active=this.analyser&&!this.audio.paused;if(active){this.analyser.getByteFrequencyData(this.frequencies);this.analyser.getByteTimeDomainData(this.wave);}
       const gradient=c.createLinearGradient(0,h,w,0);gradient.addColorStop(0,p.color1);gradient.addColorStop(1,p.color2);c.fillStyle=gradient;c.strokeStyle=gradient;c.shadowColor=p.color1;c.shadowBlur=s.glow;c.lineWidth=2;
       const n=72,value=i=>active?Math.min(1,this.frequencies[Math.min(this.frequencies.length-1,Math.floor(2+(i/n)**1.8*500))]/255*s.sensitivity):0;

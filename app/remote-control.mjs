@@ -10,9 +10,10 @@ export function remoteInput(command,payload={}){
 export class StudioRemote{
  constructor({client,getOwner,getSnapshot,onCommand,onChange=()=>{}}){Object.assign(this,{client,getOwner,getSnapshot,onCommand,onChange});this.owner=null;this.device=null;this.timer=null;this.busy=false;this.generation=0;this.message='Fernbedienung ausgeschaltet.';}
  async configure(owner,options){
-  const id=owner?.id||null;if(this.owner===id&&this.device===options?.deviceId&&!!this.timer===!!options?.enabled)return;
-  const old=this.device,oldOwner=this.owner;this.generation++;clearInterval(this.timer);this.timer=null;this.owner=id;this.device=null;this.busy=false;
+  const id=owner?.id||null;if(this.owner===id&&this.device===options?.deviceId&&this.enabled===!!options?.enabled)return;
+  const old=this.device,oldOwner=this.owner;this.generation++;clearInterval(this.timer);this.timer=null;this.owner=id;this.device=null;this.busy=false;this.enabled=!!options?.enabled;const change=this.generation;
   if(old&&oldOwner===id)await this.client.from('nt_remote_devices').delete().eq('id',old).eq('owner_id',oldOwner).then(()=>{},()=>{});
+  if(change!==this.generation)return;
   if(!id||!options?.enabled){this.message='Fernbedienung ausgeschaltet.';return;}
   options.deviceId=options.deviceId||crypto.randomUUID();this.device=options.deviceId;this.label=String(options.label||'Mein Studio').slice(0,60);const gen=this.generation;await this.tick(gen);if(gen!==this.generation)return;this.timer=setInterval(()=>this.tick(gen).catch(e=>{this.message=e.message;this.onChange();}),2000);this.timer.unref?.();
  }
@@ -26,7 +27,7 @@ export class StudioRemote{
    if(!this.valid(gen))return;check(await this.client.from('nt_remote_commands').delete().eq('device_id',this.device).lt('expires_at',new Date(now-60000).toISOString()));this.message='Handy-Fernbedienung verbunden.';this.onChange();
   }finally{if(gen===this.generation)this.busy=false;}
  }
- async close(){const owner=this.owner;this.generation++;clearInterval(this.timer);this.timer=null;if(this.device&&owner===this.getOwner()?.id)await this.client.from('nt_remote_devices').delete().eq('id',this.device).eq('owner_id',owner).then(()=>{},()=>{});this.device=null;}
+ async close(){const owner=this.owner;this.enabled=false;this.generation++;clearInterval(this.timer);this.timer=null;if(this.device&&owner===this.getOwner()?.id)await this.client.from('nt_remote_devices').delete().eq('id',this.device).eq('owner_id',owner).then(()=>{},()=>{});this.device=null;}
 }
 export class MobileRemote{
  constructor({client,getOwner}){Object.assign(this,{client,getOwner});this.devices=[];}

@@ -2,7 +2,7 @@ export {listeningPosition} from './listen-sync.mjs';
 import {listeningPosition} from './listen-sync.mjs';
 export class ListeningSession{
   constructor({team,getPlayer,onRemote,onChange=()=>{},onError=()=>{},media=null}){Object.assign(this,{team,getPlayer,onRemote,onChange,onError,media});this.hostRoom=null;this.followRoom=null;this.timer=null;this.busy=false;this.generation=0;this.chain=Promise.resolve();this.hosting=null;this.latency=0;}
-  player(){const player=this.getPlayer();if(!player.trackId)throw new Error('Starte zuerst einen Song aus deiner Mediathek.');if(player.private&&!this.media)throw new Error('Für diesen lokalen Song ist die Mithörfreigabe nicht verfügbar.');return {...player,position:Math.max(0,player.position+(player.playing?Math.min(.5,this.latency/2000):0))};}
+  player(){const player=this.getPlayer();if(!player.trackId)throw new Error('Starte zuerst einen Song aus deiner Mediathek.');if(player.allowListen===false)throw new Error('Mithören ist für diesen Song ausgeschaltet.');if(player.private&&!this.media)throw new Error('Für diesen lokalen Song ist die Mithörfreigabe nicht verfügbar.');return {...player,position:Math.max(0,player.position+(player.playing?Math.min(.5,this.latency/2000):0))};}
   async prepared(generation){
     for(let attempt=0;attempt<4;attempt++){
       const player=this.player(),prepared=this.media?await this.media.prepare(player):{...player,localAssetId:null};
@@ -30,16 +30,17 @@ export class ListeningSession{
   join(id){
     if(!/^[a-f0-9]{64}$/.test(id))return Promise.reject(new Error('Ungültiger Hörsession-Link.'));
     if(this.joining?.id===id)return this.joining.task;
-    if(this.followRoom?.id===id)return Promise.resolve();
+    if(this.followRoom?.id===id)return this.poll();
     const leaving=this.leave(),generation=this.generation;
-    const task=(async()=>{await leaving;if(generation!==this.generation)return;this.followRoom={id,host:'',track:null};await this.poll();if(generation!==this.generation||this.followRoom?.id!==id)return;this.timer=setInterval(()=>this.poll().catch(this.onError),2000);this.timer.unref?.();this.onChange();})();
+    const task=(async()=>{await leaving;if(generation!==this.generation)return;this.followRoom={id,host:'',track:null};await this.poll().catch(e=>{if(!e.accessMode)throw e;});if(generation!==this.generation||this.followRoom?.id!==id)return;this.timer=setInterval(()=>this.poll().catch(this.onError),2000);this.timer.unref?.();this.onChange();})();
     this.joining={id,task};task.finally(()=>{if(this.joining?.task===task)this.joining=null;}).catch(()=>{});return task;
   }
   async poll(){
     if(!this.followRoom||this.busy)return;this.busy=true;const generation=this.generation,id=this.followRoom.id;
     try{const start=Date.now(),room=await this.team.api('/api/listen/'+id);if(generation!==this.generation||this.followRoom?.id!==id)return;this.followRoom=room;await this.onRemote(room,listeningPosition(room,Date.now()-start),Date.now()-start);this.onChange();}
-    catch(e){if(generation!==this.generation)return;if(e.status===410){clearInterval(this.timer);this.timer=null;this.followRoom=null;this.onChange();}throw e;}finally{this.busy=false;}
+    catch(e){if(generation!==this.generation)return;if(e.accessMode){this.followRoom={id,accessMode:e.accessMode,error:e.message};this.onChange();}if(e.status===410){clearInterval(this.timer);this.timer=null;this.followRoom=null;this.onChange();}throw e;}finally{this.busy=false;}
   }
+  async access(code=''){if(!this.followRoom)return;await this.team.backend.listeningAPI.access(this.followRoom.id,code);await this.poll();}
   async leave(){const room=this.hostRoom;this.generation++;clearInterval(this.timer);this.timer=null;this.hostRoom=null;this.followRoom=null;const cleanup=this.media?.clear();this.onChange();if(room)await this.team.api('/api/listen/'+room.id,'DELETE').catch(()=>{});await cleanup;}
   get url(){return this.hostRoom?.url||'';}
 }

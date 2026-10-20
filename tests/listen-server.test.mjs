@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import {makeHandler,localInput,playerInput,safePublicBase} from '../supabase/functions/neon-public/handler.mjs';
 const dex='b791f08f-56b3-4620-a121-0ad8faf110b3',nix='22222222-2222-4222-8222-222222222222',assetId='11111111-1111-4111-8111-111111111111',roomId='a'.repeat(64);
 function fixture(){
- const now=Date.now(),tables={nt_rooms:[],nt_listen_assets:[],nt_catalog:[{id:1,data:{tracks:[{id:'band',blobId:'band-blob',title:'Band Song',artist:'Neon Trinity',duration:200}],assets:[{id:'band-blob',provider:'supabase',path:'media/band.mp3'}]}}],nt_config:[{id:1,public_base:'https://band.example'}],nt_releases:[]},objects=new Map(),signed=[];
+ const now=Date.now(),tables={nt_room_settings:[],nt_listen_preferences:[],nt_room_grants:[],nt_room_guests:[],nt_room_requests:[],nt_rooms:[],nt_listen_assets:[],nt_catalog:[{id:1,data:{tracks:[{id:'band',blobId:'band-blob',title:'Band Song',artist:'Neon Trinity',duration:200}],assets:[{id:'band-blob',provider:'supabase',path:'media/band.mp3'}]}}],nt_config:[{id:1,public_base:'https://band.example'}],nt_releases:[]},objects=new Map(),signed=[];
  const asset={id:assetId,owner_id:dex,track_id:'local-one',title:'Private MP3',artist:'Dex',duration:180,byte_size:9,path:dex+'/'+assetId+'.mp3',expires_at:new Date(now+900000).toISOString(),lyrics:'never exposed',cover:'never exposed'};
  const room={id:roomId,host_id:dex,host_alias:'Dex',track_id:'local-one',local_asset_id:assetId,position:40,playing:true,updated_at:new Date(now).toISOString(),expires_at:new Date(now+90000).toISOString()};
  tables.nt_listen_assets.push(asset);tables.nt_rooms.push(room);objects.set('nt-listen/'+asset.path,{name:assetId+'.mp3',metadata:{size:9,mimetype:'audio/mpeg'}});
@@ -12,13 +12,14 @@ function fixture(){
   const from=table=>{
    let op='select',payload,filters=[],one=false;
    const q={
-    select(){return q;},eq(k,v){filters.push(r=>r[k]===v);return q;},gt(k,v){filters.push(r=>r[k]>v);return q;},lt(k,v){filters.push(r=>r[k]<v);return q;},limit(){return q;},
-    insert(data){op='insert';payload=data;return q;},update(data){op='update';payload=data;return q;},delete(){op='delete';return q;},
+    select(){return q;},eq(k,v){filters.push(r=>r[k]===v);return q;},gt(k,v){filters.push(r=>r[k]>v);return q;},lt(k,v){filters.push(r=>r[k]<v);return q;},limit(){return q;},order(){return q;},is(k,v){return q.eq(k,v);},
+    insert(data){op='insert';payload=data;return q;},upsert(data){op='upsert';payload=data;return q;},update(data){op='update';payload=data;return q;},delete(){op='delete';return q;},
     single(){one=true;return q;},maybeSingle(){one=true;return q;},
     then(resolve,reject){try{
      let rows=tables[table].filter(r=>visible(table,r)&&filters.every(f=>f(r)));
+     if(op==='upsert'){const key=table==='nt_listen_preferences'?'owner_id':'room_id',old=tables[table].find(r=>r[key]===payload[key]);if(old){Object.assign(old,payload);rows=[old];}else op='insert';}
      if(op==='insert'){
-      const row=structuredClone(payload);
+      const row=structuredClone(payload);if(['nt_room_guests','nt_room_requests'].includes(table)){row.id=crypto.randomUUID();row.status??='pending';row.created_at??=new Date().toISOString();}
       if(table==='nt_listen_assets'){row.id=crypto.randomUUID();row.owner_id=actor;row.path=actor+'/'+row.id+'.mp3';row.expires_at=new Date(Date.now()+900000).toISOString();}
       tables[table].push(row);rows=[row];
      }
@@ -36,7 +37,7 @@ function fixture(){
   })}};
  }
  const handle=makeHandler((_url,key,options)=>client(key==='service',options?.global?.headers?.Authorization?.slice(7)||dex),key=>key==='SUPABASE_SERVICE_ROLE_KEY'?'service':key==='SUPABASE_URL'?'https://supabase.example':'anon');
- const request=async(path,method='GET',data,actor)=>{const headers={};if(actor)headers.Authorization='Bearer '+actor;const response=await handle(new Request('https://supabase.example/functions/v1/neon-public'+path,{method,headers,...(data?{body:JSON.stringify(data)}:{})}));return {status:response.status,data:await response.json()};};
+ const request=async(path,method='GET',data,actor)=>{const headers=typeof actor==='object'?{...actor}:{};if(typeof actor==='string')headers.Authorization='Bearer '+actor;const response=await handle(new Request('https://supabase.example/functions/v1/neon-public'+path,{method,headers,...(data?{body:JSON.stringify(data)}:{})}));return {status:response.status,data:await response.json()};};
  return {tables,objects,signed,asset,room,request};
 }
 test('Ein Gast hört ausschließlich den aktuellen privaten Song über einen kurzlebigen Link, ohne Zugriff auf Sammlung oder Cover',async()=>{
@@ -74,4 +75,26 @@ test('Eingaben können keine beliebigen Speicherpfade, Besitzer oder ungültigen
  for(const patch of [{byteSize:50331649},{byteSize:1.2},{duration:Infinity},{title:''},{trackId:'../private'},{artist:'x'.repeat(161)}])assert.throws(()=>localInput({...valid,...patch}));
  assert.throws(()=>playerInput({trackId:'one',position:0,playing:true,private:true}));assert.throws(()=>playerInput({trackId:'one',position:0,playing:true,localAssetId:'bad'}));
  assert.equal(safePublicBase('https://user:pass@evil.example'),'');assert.equal(safePublicBase('https://band.example/'),'https://band.example');
+});
+
+test('Geschützte Räume geben weder Titel noch MP3-Link ohne Code frei; Tickets sind an den Raum und seine Freigabe gebunden',async()=>{
+ const f=fixture();assert.equal((await f.request('/listen-preferences','PATCH',{mode:'code',code:'acht-zeichen',roomId},dex)).status,200);
+ assert.equal((await f.request('/listen/'+roomId)).status,403);assert.equal(f.signed.length,0);
+ assert.equal((await f.request('/listen/'+roomId+'/access','POST',{code:'falsch'})).status,403);
+ const grant=await f.request('/listen/'+roomId+'/access','POST',{code:'acht-zeichen'});assert.equal(grant.status,200);assert.match(grant.data.accessToken,/^[a-f0-9]{64}$/);
+ const headers={'x-listen-ticket':grant.data.accessToken};assert.equal((await f.request('/listen/'+roomId,'GET',null,headers)).status,200);
+ assert.equal((await f.request('/listen/'+roomId+'/access','POST',{renew:true},headers)).status,200);
+ const foreign=await f.request('/listen-preferences','PATCH',{mode:'link',roomId},nix);assert.equal(foreign.status,403);
+ await f.request('/listen-preferences','PATCH',{mode:'code',code:'neuer-code',roomId},dex);assert.equal((await f.request('/listen/'+roomId,'GET',null,headers)).status,403);
+});
+test('Gäste sehen nur erlaubte Songwünsche; Gastkennung allein erlaubt keine Identitätsübernahme',async()=>{
+ const f=fixture(),joined=await f.request('/listen/'+roomId+'/guest','POST',{name:'Fan',listening:true});assert.equal(joined.status,201);
+ const guest=joined.data;assert.equal((await f.request('/listen/'+roomId+'/guest','POST',{id:guest.id,name:'Fremd'})).status,410);
+ const headers={'x-listen-guest':guest.guestToken},input={guestId:guest.id,trackId:'local-one'};
+ assert.equal((await f.request('/listen/'+roomId+'/request','POST',input,headers)).status,400);
+ f.tables.nt_releases.push({id:'band-release',data:{tracks:[{id:'band',title:'Band Song'}]}});
+ assert.equal((await f.request('/listen/'+roomId+'/request','POST',{...input,trackId:'band'},headers)).status,201);
+ const status=await f.request('/listen/'+roomId+'/status','GET',null,dex);assert.equal(status.data.requests[0].name,'Fan');assert.equal(status.data.listeners[0].listening,true);
+ assert.equal((await f.request('/listen/'+roomId+'/status','GET',null,nix)).status,403);
+ const publicRoom=await f.request('/listen/'+roomId);assert.ok(!JSON.stringify(publicRoom.data).includes(guest.guestToken));
 });

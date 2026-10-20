@@ -1,4 +1,5 @@
-const cors={'Access-Control-Allow-Origin':'*','Access-Control-Allow-Headers':'authorization, apikey, content-type, x-client-info','Access-Control-Allow-Methods':'GET,POST,PATCH,DELETE,OPTIONS','Cache-Control':'no-store','Content-Type':'application/json'};
+import {roomRoute,authorizeRoom,listeners,installPreferences} from './rooms.mjs';
+const cors={'Access-Control-Allow-Origin':'*','Access-Control-Allow-Headers':'authorization, apikey, content-type, x-client-info, x-listen-ticket, x-listen-guest','Access-Control-Allow-Methods':'GET,POST,PATCH,DELETE,OPTIONS','Cache-Control':'no-store','Content-Type':'application/json'};
 const error=(message,status=400)=>Object.assign(new Error(message),{status});
 const response=(data,status=200)=>new Response(JSON.stringify(data),{status,headers:cors});
 const validId=id=>typeof id==='string'&&/^[a-zA-Z0-9-]{1,80}$/.test(id);
@@ -40,12 +41,21 @@ export function makeHandler(createClient,env){
     const signed=release.asset_paths.length?check(await db.storage.from('nt-media').createSignedUrls(release.asset_paths,300)):[];
     const urls=Object.fromEntries(signed.map(r=>[r.path,r.signedUrl]));return response({...release.data,urls});
    }
+   let authenticated=null;
+   const authenticate=async(member=true)=>{
+    if(!authenticated){const authorization=req.headers.get('Authorization')||'';if(!authorization.startsWith('Bearer '))throw error('Bitte zuerst mit Discord anmelden.',401);
+     const userDb=createClient(base,anon,{global:{headers:{Authorization:authorization}},auth:{persistSession:false,autoRefreshToken:false}}),userResult=await userDb.auth.getUser();if(userResult.error||!userResult.data.user)throw error('Die Anmeldung ist abgelaufen.',401);
+     const actorResult=await userDb.rpc('nt_identity');if(actorResult.error||!actorResult.data?.id)throw error('Das Discord-Konto konnte nicht geprüft werden.',403);authenticated={actor:actorResult.data,userDb};}
+    if(member&&!authenticated.actor.allowed)throw error('Dieses Discord-Konto ist nicht für die Band freigeschaltet.',403);return authenticated;
+   };
+   const extended=await roomRoute({req,parts,db,authenticate});if(extended)return response(extended.data,extended.status||200);
    const mediaRoute=parts[0]==='listen-media';
    if(!['listen','listen-media'].includes(parts[0])||parts.length>2)throw error('Unbekannte Anfrage.',404);
    const id=parts[1];if(id&&!(mediaRoute?uuid(id):roomId(id)))throw error('Ungültiger Hörlink.',404);
    if(!mediaRoute&&req.method==='GET'&&id){
     const room=check(await db.from('nt_rooms').select('*').eq('id',id).gt('expires_at',new Date().toISOString()).maybeSingle());
     if(!room)throw error('Diese Hörsession wurde beendet oder ist abgelaufen.',410);
+    await authorizeRoom(req,db,room,authenticate);
     let track,path,bucket='nt-media';
     if(room.local_asset_id){
      const asset=check(await db.from('nt_listen_assets').select('*').eq('id',room.local_asset_id).eq('owner_id',room.host_id).eq('track_id',room.track_id).gt('expires_at',new Date().toISOString()).maybeSingle());
@@ -58,14 +68,9 @@ export function makeHandler(createClient,env){
      track={id:song.id,blobId:song.blobId,title:song.title,artist:song.artist,duration:song.duration};path=asset.path;
     }
     const signed=check(await db.storage.from(bucket).createSignedUrl(path,120));
-    return response({id:room.id,host:room.host_alias,track,mediaUrl:signed.signedUrl,position:room.position,playing:room.playing,updatedAt:new Date(room.updated_at).getTime(),serverTime:Date.now()});
+    return response({id:room.id,host:room.host_alias,track,mediaUrl:signed.signedUrl,position:room.position,playing:room.playing,updatedAt:new Date(room.updated_at).getTime(),serverTime:Date.now(),listeners:await listeners(db,room)});
    }
-   const authorization=req.headers.get('Authorization')||'';
-   if(!authorization.startsWith('Bearer '))throw error('Bitte zuerst mit Discord anmelden.',401);
-   const userDb=createClient(base,anon,{global:{headers:{Authorization:authorization}},auth:{persistSession:false,autoRefreshToken:false}});
-   const userResult=await userDb.auth.getUser();if(userResult.error||!userResult.data.user)throw error('Die Anmeldung ist abgelaufen.',401);
-   const actorResult=await userDb.rpc('nt_identity'),actor=actorResult.data;
-   if(actorResult.error||!actor?.allowed)throw error('Dieses Discord-Konto ist nicht für die Band freigeschaltet.',403);
+   const {actor,userDb}=await authenticate(true);
    if(req.method==='POST'||req.method==='DELETE')await cleanupExpired(db,actor.id);
    if(mediaRoute){
     if(req.method==='POST'&&!id){
@@ -112,6 +117,7 @@ export function makeHandler(createClient,env){
     const publicBase=safePublicBase(config.public_base);if(!publicBase)throw error('Die öffentliche Website-Adresse fehlt.',500);
     const room=crypto.randomUUID().replaceAll('-','')+crypto.randomUUID().replaceAll('-','');
     check(await userDb.from('nt_rooms').insert({id:room,host_id:actor.id,host_alias:actor.alias,...player}));
+    try{await installPreferences(db,room,actor.id);}catch(e){await userDb.from('nt_rooms').delete().eq('id',room).eq('host_id',actor.id);throw e;}
     return response({id:room,url:publicBase+'/album.html?room='+room,host:actor.alias},201);
    }
    if(req.method==='PATCH'&&id){
@@ -119,6 +125,6 @@ export function makeHandler(createClient,env){
     if(!row)throw error('Diese Hörsession wurde inzwischen beendet.',410);return response({ok:true});
    }
    throw error('Unbekannte Anfrage.',404);
-  }catch(e){return response({error:e instanceof Error?e.message:'Die Anfrage ist fehlgeschlagen.'},Number(e?.status)||500);}
+  }catch(e){return response({error:e instanceof Error?e.message:'Die Anfrage ist fehlgeschlagen.',...(e?.accessMode?{accessMode:e.accessMode}:{}),...(e?.errorCode?{errorCode:e.errorCode}:{})},Number(e?.status)||500);}
  };
 }

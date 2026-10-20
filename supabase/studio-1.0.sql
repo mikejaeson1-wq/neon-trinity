@@ -85,6 +85,17 @@ create policy nt_remote_commands_create on public.nt_remote_commands for insert 
 create policy nt_remote_commands_ack on public.nt_remote_commands for update to authenticated using(owner_id=(select auth.uid()) and (select private.nt_is_member())) with check(owner_id=(select auth.uid()) and (select private.nt_is_member()));
 create policy nt_remote_commands_delete on public.nt_remote_commands for delete to authenticated using(owner_id=(select auth.uid()) and (select private.nt_is_member()));
 
+create table public.nt_listen_preferences (
+ owner_id uuid primary key references auth.users(id) on delete cascade,
+ mode text not null check(mode in('link','code','invite')),
+ code_hash text not null default '', code_salt text not null default '',
+ invited_discord_ids text[] not null default '{}', revision uuid not null default gen_random_uuid(),
+ check(cardinality(invited_discord_ids)<=50),
+ check(mode<>'code' or (code_hash ~ '^[a-f0-9]{64}$' and code_salt ~ '^[a-f0-9]{32}$'))
+);
+alter table public.nt_listen_preferences enable row level security;
+revoke all on public.nt_listen_preferences from public,anon,authenticated;
+
 create table public.nt_room_settings (
  room_id text primary key references public.nt_rooms(id) on delete cascade,
  mode text not null default 'link' check(mode in('link','code','invite')),
@@ -114,6 +125,7 @@ create table public.nt_room_guests (
  id uuid primary key default gen_random_uuid(),
  room_id text not null references public.nt_rooms(id) on delete cascade,
  token_hash text not null check(token_hash ~ '^[a-f0-9]{64}$'),
+ listening boolean not null default false,
  display_name text not null default 'Gast' check(length(btrim(display_name)) between 1 and 60),
  updated_at timestamptz not null default now(),
  expires_at timestamptz not null
