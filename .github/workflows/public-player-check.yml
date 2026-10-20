@@ -1,0 +1,40 @@
+name: Öffentlichen Player und Download prüfen
+on:
+  push:
+    branches: [main]
+    paths: [docs/**, .github/workflows/public-player-check.yml]
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+        with:
+          node-version: '22'
+      - name: Öffentliche Dateien, CORS und veröffentlichten Installer abrufen
+        run: |
+          node --input-type=module <<'NODE'
+          import assert from 'node:assert/strict';
+          import {readFile} from 'node:fs/promises';
+          import {CLOUD} from './app/cloud-config.mjs';
+          import {STUDIO_VERSION} from './app/version.mjs';
+          const fetchChecked=(url,options={})=>fetch(url,{...options,cache:'no-store',signal:AbortSignal.timeout(15000)});
+          async function waitJSON(url,accept){for(let n=0;n<60;n++){try{const r=await fetchChecked(url);if(r.ok){const value=await r.json();if(accept(value))return value;}}catch{}await new Promise(resolve=>setTimeout(resolve,4000));}throw new Error('Die Veröffentlichung war nicht rechtzeitig erreichbar.');}
+          await waitJSON(CLOUD.publicBase+'/neon-trinity.json',v=>v.studioVersion===STUDIO_VERSION);
+          const marker=await fetchChecked(CLOUD.publicBase+'/neon-trinity.json',{headers:{Origin:'ntapp://studio'}});
+          assert.ok(['*','ntapp://studio'].includes(marker.headers.get('access-control-allow-origin')),'Website-Status ist durch CORS blockiert.');
+          const source=await readFile('app/public-cloud.mjs','utf8'),list=source.match(/for\(const path of \[([^\]]+)\]/)[1],names=[...list.matchAll(/'([^']+)'/g)].map(m=>m[1]);
+          for(let n=0;n<names.length;n+=4)await Promise.all(names.slice(n,n+4).map(async name=>{const r=await fetchChecked(CLOUD.publicBase+'/'+name,{method:'HEAD'});assert.equal(r.status,200,'Öffentliche Datei fehlt: '+name);}));
+          const base='https://github.com/mikejaeson1-wq/neon-trinity/releases/download/v'+STUDIO_VERSION+'/';
+          const metadata=await waitJSON(base+'neon-compat.json',v=>v.version===STUDIO_VERSION);
+          assert.equal(metadata.format,'neon-trinity-release');assert.equal(metadata.rollbackSafe,true);assert.ok(metadata.checks.includes('windows-startup'));
+          const manifest=await (await fetchChecked(base+'latest.yml')).text();
+          assert.equal(manifest.match(/^version:\s*(\S+)/m)?.[1],STUDIO_VERSION);
+          assert.equal(manifest.match(/^\s+sha512:\s*(\S+)/m)?.[1],metadata.installer.sha512);
+          const installer=await fetchChecked(base+metadata.installer.name,{method:'HEAD'});assert.equal(installer.status,200);assert.equal(Number(installer.headers.get('content-length')),metadata.installer.size);
+          console.log(JSON.stringify({version:STUDIO_VERSION,publicFiles:names.length,websiteCORS:true,installerAvailable:true,windowsSigned:metadata.signed}));
+          NODE
