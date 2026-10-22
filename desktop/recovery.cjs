@@ -3,7 +3,7 @@ const REPO='mikejaeson1-wq/neon-trinity',ROOT='https://github.com/'+REPO+'/relea
 const stable=v=>/^1\.\d+\.\d+$/.test(v||'');
 const older=(a,b)=>{const x=a.split('.').map(Number),y=b.split('.').map(Number);for(let i=0;i<3;i++){if(x[i]!==y[i])return x[i]<y[i];}return false;};
 function compatible(value,version){
- return !!value&&value.format==='neon-trinity-release'&&value.formatVersion===1&&stable(value.version)&&older(value.version,version)&&value.stateVersion===1&&value.databaseVersion===1&&value.ownerSettingsVersion===1&&value.rollbackSafe===true&&Array.isArray(value.checks)&&['unit','windows-install','windows-data-preservation'].every(k=>value.checks.includes(k))&&value.installer?.name==='Neon-Trinity-Studio-Setup.exe'&&Number.isInteger(value.installer.size)&&value.installer.size>0&&value.installer.size<=350*1048576&&/^[A-Za-z0-9+/]{86}==$/.test(value.installer.sha512||'');
+ return !!value&&value.format==='neon-trinity-release'&&value.formatVersion===1&&stable(value.version)&&value.version!=='1.1.0'&&older(value.version,version)&&value.stateVersion===1&&value.databaseVersion===1&&value.ownerSettingsVersion===1&&value.rollbackSafe===true&&Array.isArray(value.checks)&&['unit','windows-install','windows-data-preservation'].every(k=>value.checks.includes(k))&&value.installer?.name==='Neon-Trinity-Studio-Setup.exe'&&Number.isInteger(value.installer.size)&&value.installer.size>0&&value.installer.size<=350*1048576&&/^[A-Za-z0-9+/]{86}==$/.test(value.installer.sha512||'');
 }
 function authenticode(file,{platform=process.platform,exec=execFile}={}){
  if(platform!=='win32')return Promise.resolve({signed:false,status:'unsupported',subject:'',message:'Windows-Signaturen sind auf diesem System nicht prüfbar.'});

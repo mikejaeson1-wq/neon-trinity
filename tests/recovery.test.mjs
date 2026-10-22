@@ -7,3 +7,5 @@ test('Signaturprüfung übergibt Pfade als Daten an ein festes Windows-Kommando'
 test('Die echte Windows-Signaturprüfung erkennt die Microsoft-Systemsignatur auch unter PowerShell 7 als aufrufender Shell',{skip:process.platform!=='win32'},async()=>{
  const {join}=await import('node:path');const signature=await authenticode(join(process.env.SystemRoot,'System32','kernel32.dll'));assert.equal(signature.signed,true,JSON.stringify(signature));assert.equal(signature.status,'Valid');
 });
+
+test('Die bekannte Profil-Regression 1.1.0 wird auch mit gültigen Metadaten nicht als Rollback angeboten',()=>{assert.equal(compatible({...metadata,version:'1.1.0'},'1.1.1'),false);assert.equal(compatible({...metadata,version:'1.0.1'},'1.1.1'),true);});

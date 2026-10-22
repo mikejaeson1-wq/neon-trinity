@@ -4,6 +4,7 @@ Dieses Fehlerupdate behebt die scheinbar leere lokale Mediathek nach Version 1.1
 
 - **Bisherige lokale Ablage:** Das Studio legt seinen Datenordner wieder vor dem ersten Speicherzugriff eindeutig auf „Neon Trinity Studio“ fest. Version 1.1.0 konnte durch die neue Miniplayer-Einstellung zu früh einen zweiten Profilordner öffnen. Dadurch waren die zuvor gespeicherten Songs, Playlists und Sitzungen dort nicht sichtbar.
 - **Vorhandene Daten erhalten:** Es werden keine Mediatheken gelöscht, verschoben oder zwischen Konten vermischt. Ein zusätzlich angelegter Ordner aus 1.1.0 bleibt erhalten. Neu darin importierte Songs erscheinen deshalb nicht automatisch in der ursprünglichen Ablage.
+- **Rückkehr zu älteren Versionen:** Die fehlerhafte Version 1.1.0 wird nicht mehr als sichere Wiederherstellung angeboten.
 - **Mithören:** Der Browser-Netzwerkaufruf ist korrekt gebunden; die wiederkehrende Meldung „Failed to execute fetch on Window: Illegal invocation“ wird behoben.
 - **Upgrade-Prüfung:** Zusätzlich zu den bisherigen Prüfungen wird auf Windows die tatsächliche Installerfolge 1.0.1 → 1.1.0 → 1.1.1 mit gespeicherten Band-Songs, privaten Songs zweier Konten und einer lokalen Playlist durchlaufen. Audiodaten und die zusätzliche Ablage werden auf Erhalt geprüft.
 
