@@ -7,7 +7,7 @@ import {newState} from '../app/core.mjs';
 import {STUDIO_VERSION} from '../app/version.mjs';
 const {window,document}=parseHTML(await readFile(new URL('../app/index.html',import.meta.url),'utf8'));globalThis.window=window;globalThis.document=document;window.scrollTo=()=>{};
 let owner={id:'dex'},context='song-a';const state=newState();
-const q=new StudioQoL({getState:()=>state,getOwner:()=>owner,restorePreferences(){},getTrack:()=>null,tracks:()=>[],player:()=>({source:'studio',title:'',paused:true}),getQueue:()=>({queue:[]}),persist:async()=>{},formContexts:()=>({work:context}),render(){},toast(){},fail:e=>{throw e;}});q.sync();q.settings().seenVersion=STUDIO_VERSION;
+const q=new StudioQoL({getState:()=>state,getOwner:()=>owner,spotify:{playback:null},restorePreferences(){},getTrack:()=>null,tracks:()=>[],player:()=>({source:'studio',title:'',paused:true}),getQueue:()=>({queue:[]}),persist:async()=>{},formContexts:()=>({work:context}),render(){},toast(){},fail:e=>{throw e;}});q.sync();q.settings().seenVersion=STUDIO_VERSION;
 const form=(text='')=>'<h1>Werkstatt</h1><form data-plus-form="work"><textarea name="notes">'+text+'</textarea></form>';
 test('Formularentw체rfe bleiben dem jeweiligen Song zugeordnet und erhalten sich beim Wechsel zur체ck',()=>{
  document.querySelector('#main').innerHTML=form();q.afterRender('studio/work');document.querySelector('[name=notes]').value='Unsaved notes for A';q.captureView();
@@ -21,5 +21,8 @@ test('Neue globale Suchbegriffe werden nicht durch einen fr체heren Suchentwurf �
  q.settings().views.search={search:'Old search'};document.querySelector('#global-search').value='New search';document.querySelector('#main').innerHTML='<h1>Suche</h1>';q.afterRender('search');assert.equal(document.querySelector('#global-search').value,'New search');
 });
 test('Kontowechsel 체bernimmt keine Entw체rfe des vorherigen Kontos',()=>{
- q.captureView();owner={id:'nix'};q.sync();q.settings().seenVersion=STUDIO_VERSION;context='song-a';document.querySelector('#main').innerHTML=form('Own saved notes');q.afterRender('studio/work');assert.equal(document.querySelector('[name=notes]').value,'Own saved notes');assert.equal(q.sleep.active,false);
+ q.captureView();const job=q.beginImport(2);q.progressImport(1,'Private secret.mp3');owner={id:'nix'};q.sync();assert.equal(job.cancelled,true);assert.equal(document.querySelector('#qol-import'),null);q.settings().seenVersion=STUDIO_VERSION;context='song-a';document.querySelector('#main').innerHTML=form('Own saved notes');q.afterRender('studio/work');assert.equal(document.querySelector('[name=notes]').value,'Own saved notes');assert.equal(q.sleep.active,false);
+});
+test('Nach dem Sleep-Timer wird der Ausblendzustand freigegeben, damit neue Lautst채rken gespeichert werden',async()=>{
+ q.command=async()=>{};q.sleep.start(1,{fade:true,now:Date.now()-70000});q.sleep.originalSource='studio';q.sleep.originalVolume=.8;q.tick();await new Promise(resolve=>setImmediate(resolve));assert.equal(q.sleep.originalVolume,null);assert.equal(q.sleep.active,false);
 });

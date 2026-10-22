@@ -59,13 +59,13 @@ export function searchCatalog({tracks=[],albums=[],playlists=[],spotify=[]},term
 }
 export class SleepTimer{
  constructor(){this.cancel();}
- start(minutes,{song=false,fade=false,current=null,now=Date.now()}={}){this.deadline=song?0:now+clamp(minutes,1,180,30)*60000;this.song=song;this.fade=fade;this.current=current;this.active=true;this.originalVolume=null;}
- cancel(){this.active=false;this.deadline=0;this.song=false;this.originalVolume=null;}
+ start(minutes,{song=false,fade=false,current=null,now=Date.now()}={}){this.deadline=song?0:now+clamp(minutes,1,180,30)*60000;this.song=song;this.fade=fade;this.current=current;this.active=true;this.originalVolume=null;this.originalSource=null;}
+ cancel(){this.active=false;this.deadline=0;this.song=false;this.originalVolume=null;this.originalSource=null;}
  remaining(now=Date.now()){return this.active&&!this.song?Math.max(0,Math.ceil((this.deadline-now)/1000)):0;}
  tick({now=Date.now(),source,current,volume,ended=false}={}){
   if(!this.active)return null;
   if(this.song){if(ended||current!==this.current){this.active=false;return {pause:true};}return null;}
-  if(now>=this.deadline){this.active=false;return {pause:true,restore:this.originalVolume};}
-  if(this.fade&&source!=='spotify'&&this.deadline-now<=10000){this.originalVolume??=volume;return {volume:this.originalVolume*Math.max(0,(this.deadline-now)/10000)};}return null;
+  if(now>=this.deadline){this.active=false;return {pause:true,restore:this.originalSource===(source==='spotify'?'spotify':'studio')?this.originalVolume:null};}
+  if(this.fade&&source!=='spotify'&&this.deadline-now<=10000){this.originalVolume??=volume;this.originalSource??='studio';return {volume:this.originalVolume*Math.max(0,(this.deadline-now)/10000)};}return null;
  }
 }
