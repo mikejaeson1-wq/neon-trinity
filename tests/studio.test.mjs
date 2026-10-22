@@ -71,3 +71,23 @@ test('Die Freigabe direkt am Player schaltet die Discord-Titelanzeige aus, währ
  click('[data-plus="privacy-open"]');const form=document.querySelector('[data-plus-form="privacy-quick"]');assert.ok(form);form.querySelector('[name=show]').checked=false;await form.onsubmit({preventDefault(){}});
  assert.equal((await loadState()).studioOwners['local-device'].privacy.tracks[track.id].show,false);assert.equal(audio.paused,false);assert.equal(document.querySelector('dialog').open,false);
 });
+
+test('QoL: Repeat schaltet über echte Player-Buttons zwischen Playlist, Song und Aus',async()=>{
+ navigate('library');const t=(await loadState()).tracks[0];click('[data-action="play-track"][data-id="'+t.id+'"]');await waitFor(()=>!audio.paused);
+ for(const [text,mode] of [['Ganze Playlist','context'],['Einzelnen Song','track'],['Wiederholung aus','off']]){document.querySelector('#repeat').onclick();await waitFor(()=>document.querySelector('#repeat').title.includes(text));await waitFor(()=>true);}
+ assert.equal(document.querySelector('#repeat').textContent,'↻');assert.equal(document.querySelector('#repeat').getAttribute('aria-pressed'),'false');
+});
+test('QoL: Warteschlange suchen, auswählen, aufräumen und direkt rückgängig machen',async()=>{
+ const file=new File(['ID3 additional audio'],'Second Song.mp3',{type:'audio/mpeg'});await document.querySelector('#audio-files').onchange({target:{files:[file]}});navigate('library');const tracks=(await loadState()).tracks;click('[data-action="play-track"][data-id="'+tracks[0].id+'"]');await waitFor(()=>!audio.paused);navigate('studio/queue');
+ assert.equal(document.querySelectorAll('[data-qol-queue]').length,2);const search=document.querySelector('#qol-queue-search');search.value='Second';search.oninput({target:search});assert.equal([...document.querySelectorAll('[data-queue-index]')].filter(el=>!el.hidden).length,1);
+ click('[data-qol="queue-clear"]');await waitFor(()=>document.querySelectorAll('[data-qol-queue]').length===1);click('[data-qol="queue-undo"]');await waitFor(()=>document.querySelectorAll('[data-qol-queue]').length===2);
+});
+test('QoL: Schnellbearbeitung und gemeinsames Bearbeiten ändern nur ausgewählte Songangaben',async()=>{
+ navigate('library');const title=document.querySelector('.song-cell strong');title.ondblclick();const input=document.querySelector('.qol-inline');assert.ok(input);input.value='Edited Title';input.onkeydown({key:'Enter',preventDefault(){}});await waitFor(()=>document.querySelector('.song-cell strong')?.textContent==='Edited Title');
+ click('[data-qol="select-all"]');click('[data-qol="bulk-edit"]');const form=document.querySelector('#qol-bulk');form.querySelector('[name="use-artist"]').checked=true;form.querySelector('[name=artist]').value='Trinity';await form.onsubmit({preventDefault(){},target:form});assert.ok((await loadState()).tracks.every(t=>t.artist==='Trinity'));
+});
+test('QoL: Globaler Suchbereich und angeheftete Ansichten funktionieren über die UI',async()=>{
+ navigate('library');click('[data-qol="pin"]');await waitFor(()=>document.querySelector('#qol-pins a'));assert.match(document.querySelector('#qol-pins').textContent,/Soundarchiv/);
+ const input=document.querySelector('#global-search');input.value='Edited';input.oninput({target:input});navigate('search');assert.match(document.querySelector('main').textContent,/Edited Title/);assert.ok(document.querySelector('#qol-search-source'));
+ navigate('player');assert.ok(document.querySelector('#qol-sleep'));assert.ok(document.querySelector('#qol-shortcuts'));
+});

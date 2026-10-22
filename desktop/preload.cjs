@@ -1,6 +1,7 @@
 const {contextBridge,ipcRenderer}=require('electron');
 async function call(name,...args){const r=await ipcRenderer.invoke(name,...args);if(!r.ok){const e=new Error(r.message);e.status=r.status;e.data=r.data;throw e;}return r.value;}
 contextBridge.exposeInMainWorld('neonDesktop',{
+  miniPin:value=>call('player:mini-pin',value),miniPreferences:()=>call('player:mini-preferences'),miniBounds:value=>call('player:mini-bounds',value),
   releaseSecurity:()=>call('studio:release-security'),recoveryList:()=>call('studio:recovery-list'),recoveryDownload:version=>call('studio:recovery-download',version),recoveryInstall:()=>call('studio:recovery-install'),
   pushSpectrum:values=>call('player:spectrum',values),onSpectrum:callback=>{ipcRenderer.on('player-spectrum',(_,values)=>callback(values));},
   backupBegin:(manifest,owner)=>call('backup:begin',manifest,owner),backupWrite:(job,key,offset,bytes,owner)=>call('backup:write',job,key,offset,bytes,owner),backupFinish:(job,retention,owner)=>call('backup:finish',job,retention,owner),backupAbort:(job,owner)=>call('backup:abort',job,owner),backupList:owner=>call('backup:list',owner),backupManifest:(id,owner)=>call('backup:manifest',id,owner),backupRead:(id,key,owner)=>call('backup:read',id,key,owner),backupRemove:(id,owner)=>call('backup:remove',id,owner),backupFolder:owner=>call('backup:folder',owner),

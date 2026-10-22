@@ -1,5 +1,7 @@
 const { app, BrowserWindow, ipcMain, protocol, net, shell, safeStorage, Menu, screen, dialog } = require('electron');
 const path = require('node:path');
+const {visibleBounds,MiniWindowState}=require('./window-state.cjs');
+const miniPreferences=new MiniWindowState(app);
 const fs = require('node:fs/promises');
 const { pathToFileURL } = require('node:url');
 const { validRequest, githubRequest } = require('./service.cjs');
@@ -32,7 +34,7 @@ async function readToken(){try{if(!secureStorageAvailable())return '';return saf
 function trusted(event){const u=event.senderFrame&&new URL(event.senderFrame.url);if(!u||u.protocol!=='ntapp:'||u.hostname!=='studio')throw new Error('Unzulässiger Zugriff.');}
 if(primaryInstance)app.whenReady().then(async()=>{
   if(app.isPackaged)app.setAsDefaultProtocolClient('neontrinity');
-  token=await readToken();
+  token=await readToken();await miniPreferences.load();
   playerSettings=await import('../app/player-settings.mjs');skinEngine=await import('../app/skin-engine.mjs');await team.load();await spotify.load();await suno.load();
   if(team.config.discordClientId)presence.configure(team.config.discordClientId);
   const appRoot=path.resolve(__dirname,'../app');
@@ -102,7 +104,7 @@ if(primaryInstance)app.whenReady().then(async()=>{
     presence.update(playerState);return true;
   });
   handle('player:command',command=>{
-    if(!['toggle','next','previous','seek','volume','shuffle','repeat','appearance','equalizer','open-spotify','queue-play','queue-more','queue-move','queue-next','queue-save'].includes(command?.command))throw new Error('Unbekannter Player-Befehl.');
+    if(!['toggle','next','previous','seek','volume','shuffle','repeat','appearance','equalizer','open-spotify','queue-play','queue-more','queue-move','queue-next','queue-save','backward','forward','mute'].includes(command?.command))throw new Error('Unbekannter Player-Befehl.');
     const message={command:command.command};
     if(['seek','volume'].includes(command.command)){if(!Number.isFinite(command.value))throw new Error('Ungültiger Player-Wert.');message.value=Math.max(0,Math.min(1,command.value));}
     if(command.command==='appearance'){const value=command.value||{};message.value={};for(const key of ['skin','layout','equalizerOpen','playlistOpen'])if(Object.hasOwn(value,key))message.value[key]=playerSettings.normalizePlayer({...playerState.appearance,[key]:value[key]})[key];}
@@ -116,6 +118,9 @@ if(primaryInstance)app.whenReady().then(async()=>{
   handle('listen:background',()=>{window.minimize();return true;});
   handle('player:mini',()=>{openMini();return true;});
   handle('player:close-mini',()=>{miniWindow?.close();return true;});
+  handle('player:mini-pin',value=>{if(typeof value!=='boolean')throw new Error('Ungültige Fenstereinstellung.');if(miniWindow&&!miniWindow.isDestroyed()){miniWindow.setAlwaysOnTop(value);miniPreferences.save(miniWindow.getBounds(),value).catch(()=>{});}else miniPreferences.value.alwaysOnTop=value;return value;});
+  handle('player:mini-preferences',()=>({alwaysOnTop:miniPreferences.value.alwaysOnTop!==false}));
+  handle('player:mini-bounds',input=>{if(!miniWindow||miniWindow.isDestroyed())throw new Error('Öffne zuerst den Miniplayer.');if(input!=null){if(!Number.isFinite(input.width)||!Number.isFinite(input.height))throw new Error('Bitte eine gültige Fenstergröße eingeben.');const bounds=visibleBounds({...miniWindow.getBounds(),width:input.width,height:input.height},screen.getAllDisplays());miniWindow.setBounds(bounds);miniPreferences.save(miniWindow.getBounds(),miniWindow.isAlwaysOnTop()).catch(()=>{});}return miniWindow.getBounds();});
   handle('player:show-studio',()=>{window.show();window.focus();return true;});
   studioUpdater=new StudioUpdater({updater:autoUpdater,version:app.getVersion(),supported:app.isPackaged&&process.platform==='win32'&&!process.env.PORTABLE_EXECUTABLE_FILE,onStatus:state=>{if(window&&!window.isDestroyed())window.webContents.send('studio-update-status',state);},beforeInstall:()=>{quitting=true;},afterInstallError:()=>{quitting=false;}});
   handle('studio:release-security',()=>authenticode(process.execPath));
@@ -149,11 +154,23 @@ app.on('open-url',(event,url)=>{const room=listeningRoomFromURL(url);if(room){ev
 app.on('before-quit',()=>{quitting=true;backups.close().catch(()=>{});});
 app.on('window-all-closed',()=>{if(process.platform!=='darwin')app.quit();});
 
-function openMini(){if(miniWindow&&!miniWindow.isDestroyed()){miniWindow.show();miniWindow.focus();return;}miniSettingsOpen=false;miniMeasuredHeight=0;miniWindow=new BrowserWindow({width:430,height:276,minWidth:430,minHeight:170,resizable:false,frame:false,alwaysOnTop:true,skipTaskbar:true,title:'Neon Trinity Miniplayer',backgroundColor:'#100919',webPreferences:{preload:path.join(__dirname,'preload.cjs'),contextIsolation:true,nodeIntegration:false,sandbox:true,webSecurity:true}});miniWindow.webContents.setWindowOpenHandler(()=>({action:'deny'}));miniWindow.webContents.on('will-navigate',event=>event.preventDefault());miniWindow.webContents.on('did-finish-load',()=>miniWindow.webContents.send('player-state',playerState));miniWindow.on('closed',()=>{miniWindow=null;if(!quitting&&window&&!window.isDestroyed()&&!window.isVisible())window.show();});miniWindow.loadURL('ntapp://studio/mini.html');resizeMini();}
+function openMini(){
+ if(miniWindow&&!miniWindow.isDestroyed()){miniWindow.show();miniWindow.focus();return;}
+ miniSettingsOpen=false;miniMeasuredHeight=0;
+ miniWindow=new BrowserWindow({...visibleBounds(miniPreferences.value,screen.getAllDisplays()),minWidth:360,minHeight:180,resizable:true,frame:false,alwaysOnTop:miniPreferences.value.alwaysOnTop!==false,skipTaskbar:false,title:'Neon Trinity Miniplayer',backgroundColor:'#100919',webPreferences:{preload:path.join(__dirname,'preload.cjs'),contextIsolation:true,nodeIntegration:false,sandbox:true,webSecurity:true}});
+ miniWindow.webContents.setWindowOpenHandler(()=>({action:'deny'}));miniWindow.webContents.on('will-navigate',event=>event.preventDefault());
+ miniWindow.webContents.on('did-finish-load',()=>miniWindow.webContents.send('player-state',playerState));
+ let timer;const remember=()=>{clearTimeout(timer);timer=setTimeout(()=>{if(miniWindow&&!miniWindow.isDestroyed())miniPreferences.save(miniWindow.getBounds(),miniWindow.isAlwaysOnTop()).catch(()=>{});},250);};
+ miniWindow.on('resize',remember);miniWindow.on('move',remember);
+ miniWindow.on('close',()=>{clearTimeout(timer);miniPreferences.save(miniWindow.getBounds(),miniWindow.isAlwaysOnTop()).catch(()=>{});});
+ miniWindow.on('closed',()=>{miniWindow=null;if(!quitting&&window&&!window.isDestroyed()&&!window.isVisible())window.show();});
+ miniWindow.loadURL('ntapp://studio/mini.html');
+}
 app.on('before-quit',()=>{quitting=true;studioUpdater?.stop();presence.close();spotify.cancelLogin().catch(()=>{});team.cancelLogin().catch(()=>{});});
 
 function spotifyOwner(expected){
   try{const session=JSON.parse(team.getItem('neon-trinity-supabase-auth')||'null'),claims=JSON.parse(Buffer.from(session.access_token.split('.')[1],'base64url').toString());if(claims.iss!=='https://xyhkpwhfgjamssojjzbu.supabase.co/auth/v1'||!/^([a-f0-9]{8}-)([a-f0-9]{4}-){3}[a-f0-9]{12}$/i.test(claims.sub)||session.user?.id&&session.user.id!==claims.sub||expected!==claims.sub)throw new Error();return claims.sub;}catch{throw new Error('Bitte zuerst mit Discord im Studio anmelden.');}
 }
 
-function resizeMini(){if(!miniWindow||miniWindow.isDestroyed())return;const height=miniMeasuredHeight||((playerState.appearance?.layout==='compact'?180:276)+(miniSettingsOpen?60:0)+(playerState.appearance?.equalizerOpen?256:0)+(playerState.appearance?.playlistOpen?260:0));const max=screen.getDisplayMatching(miniWindow.getBounds()).workAreaSize.height-40;const target=Math.min(max,height);const [width,current]=miniWindow.getContentSize();if(width!==430||current!==target)miniWindow.setContentSize(430,target);}
+// Content updates must never overwrite a size chosen by the user.
+function resizeMini(){return;}

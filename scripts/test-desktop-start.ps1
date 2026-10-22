@@ -21,3 +21,5 @@ try {
   if ($desktopProcess -and -not $desktopProcess.HasExited) { $desktopProcess.CloseMainWindow() | Out-Null; if (-not $desktopProcess.WaitForExit(5000)) { $desktopProcess.Kill() } }
   $env:ELECTRON_ENABLE_LOGGING = $desktopOldLogging
 }
+node scripts/test-mini-window.mjs $desktopApps[0].FullName
+if ($LASTEXITCODE -ne 0) { throw 'Der native Miniplayer- und Repeat-Test ist fehlgeschlagen.' }

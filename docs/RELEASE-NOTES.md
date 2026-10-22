@@ -1,24 +1,16 @@
-# Neon Trinity Studio 1.0.1
+# Neon Trinity Studio 1.1.0
 
-Das Gesamtupdate verbindet Player, Bandarbeit, Hörsessions und die Handy-App. Version 1.0.1 ergänzt die notwendige Netzwerkfreigabe für die tatsächliche Website-Statusprüfung.
+Das Komfortupdate setzt die 25 Punkte der QoL-Roadmap um und macht den Miniplayer zu einem frei skalierbaren Fenster.
 
-- **Sicherungen und Papierkorb:** vollständige kontogetrennte Ordnersicherungen mit MP3s, Covern und Prüfsummen; automatischer Zeitplan; vorbereitete, atomare Wiederherstellung; Verlauf für die letzten 60 Änderungen mit Prüfung auf zwischenzeitliche Bearbeitung.
-- **Privatsphäre und Status:** Discord-Titelanzeige und Mithören getrennt steuern, auch je Song; tatsächliche Verbindungsprüfungen für Supabase, Discord, Spotify, Website, Sicherungen und Updates.
-- **Player:** Warteschlange ziehen, Titel als Nächstes setzen und als persönliche, lokale oder Band-Playlist speichern; Wellenform zum Springen; RMS-Pegelanpassung; geplante pausenlose Titelwechsel und Überblendung für eigene MP3s. Der klassische Miniplayer bleibt erhalten.
-- **Spotify und Suno:** eigene Spotify-Playlists anheften, bevorzugtes Wiedergabegerät merken und Verbindung erneut prüfen. Suno-ZIP-Dateien mit Auswahlvorschau zuerst privat importieren und anschließend auf Wunsch eigene Bandkopien anlegen.
-- **Musikwerkstatt:** Songfassungen gruppieren, Fassungsnamen, Notizen, Credits und eigene LRC-Songtexte speichern; Zeitmarken kommentieren und erledigen; Release-Status für Songs und Alben. Lokale Fassungen und Kommentare bleiben auf dem Gerät.
-- **Bühnenmodus:** große Wiedergabesteuerung, Setlists, Pausen vor ausgewählten Titeln, Tastaturbedienung und Bearbeitungssperre.
-- **Hörräume:** sichtbare Gästeliste, freigegebene Band-Songwünsche mit Gastgeberentscheidung und Zugang per Hörlink, Code oder eingeladenem Discord-Konto. Lokale Sammlungen bleiben für Gäste verborgen; nur die gerade freigegebene MP3 wird kurzzeitig bereitgestellt.
-- **Öffentliche Profile:** eigene Headerbilder, bis zu sechs veröffentlichte Alben anheften und Neuigkeiten. Eigene Songtexte und Credits gelangen erst bei erneuter Albumveröffentlichung auf die öffentliche Albumseite.
-- **Eigene Designs:** sichere Skin- und Szeneneditoren mit Bildimport sowie JSON-Import/Export; musikreaktive Maskottchen; bis zu vier Visualizer-Ebenen. Spotify Connect stellt dem Studio keine Audiodaten für EQ und Visualisierung bereit.
-- **Handy:** eigene Band-MP3s bewusst offline speichern, eigenes Speicherlimit wählen und nur das eigene Desktop-Studio fernsteuern. Private Offline-Downloads werden beim Kontowechsel ausgeblendet. Browser und Betriebssystem können unter Speicherdruck Daten entfernen.
+- **Repeat:** einmal drücken wiederholt die Playlist, zweimal den einzelnen Song, dreimal schaltet Repeat aus. Einheitlich im Studio, Miniplayer und auf dem Handy; Repeat 1 bleibt deutlich erkennbar.
+- **Miniplayer:** an Rändern/Ecken frei skalieren oder Breite und Höhe eingeben. Größe, Position und „Immer im Vordergrund“ bleiben gespeichert. Die Playlist nutzt den zusätzlichen Platz. Classic bleibt erhalten.
+- **Wiedergabe:** gespeicherte Warteschlange und Songposition per Klick fortsetzen; sinnvoller Vorheriger-Titel-Button, ±10 Sekunden, Mausrad-Lautstärke, Stummschalten und Shuffle mit Hörverlauf.
+- **Warteschlange:** durchsuchen, mehrere Titel auswählen, gemeinsam verschieben oder entfernen, bereits gespielte Einträge aufräumen und direkt rückgängig machen. Auch die Miniplayer-Playlist kann durchsucht werden.
+- **Mediathek:** globale Suche mit Quellenfiltern, gemerkte Ansichten, persönlicher Schnellzugriff, direkte Titel-/Interpretenbearbeitung und gemeinsame Metadatenänderungen. Duplikate vergleichen und fehlende lokale Kopien anhand ihrer Prüfsumme erneut zuordnen.
+- **Komfort:** sichtbarer Importfortschritt mit Abbrechen, verständlichere Fehleraktionen, erneute Verbindung nach Netzwerkausfällen, Sleep-Timer, sichtbare Freigaben und anpassbare Tastenkürzel mit Konfliktprüfung.
+- **Handy:** größere Player-Tasten, drei Repeat-Stufen, Shuffle-Verlauf, Zeitsprünge sowie Offline-Downloadfortschritt, Abbrechen, Speicheranzeige und Mehrfachauswahl beim Entfernen.
+- **Nach dem Update:** Neuerungen direkt im Studio mit Links zu den Einstellungen.
 
-## Installation und Wiederherstellung
+Die ausführliche Liste und Bedienhinweise stehen in docs/QOL-1.1.md. Die bisherigen persönlichen Inhalte und die gemeinsame Mediathek bleiben erhalten. Für diese Version ist keine neue Supabase-Migration nötig.
 
-Die installierte Windows-App findet das Update über den vorhandenen Update-Kanal. Vor dem Installieren aus Version 1.0 wird bei angemeldetem Bandkonto eine vollständige Sicherung erstellt.
-
-Für eine Rückkehr zu einer früheren Version werden nur geprüfte 1.0-Versionen mit identischem Datenformat angeboten. Version 1.0.0 bildet die erste kompatible Basis; das Studio bietet nur tatsächlich veröffentlichte und geprüfte frühere Versionen an.
-
-Die Pipeline unterstützt Windows-Zertifikate und Azure Trusted Signing und prüft eine konfigurierte Signatur auf App und Installer. Eine echte Herausgebersignatur setzt ein hinterlegtes gültiges Zertifikat bzw. einen eingerichteten Signaturdienst voraus.
-
-Discords globale Aktivitätsfreigabe kann das Studio nicht umgehen. Gemeinsame Hörräume übertragen Studio-MP3s; Spotify spielt über das eigene Premium-Konto.
+Spotify wird über das eigene Premium-Konto gesteuert. Suche umfasst bereits geladene eigene Inhalte; Warteschlangenbearbeitung im Studio gilt für eigene MP3s. Der Sleep-Timer läuft bei geöffnetem Studio. Private lokale Sammlungen bleiben dem eigenen Konto auf diesem Gerät zugeordnet.

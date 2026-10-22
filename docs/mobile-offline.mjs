@@ -1,14 +1,22 @@
 const MAX_FILE=48*1024*1024;
+export async function downloadMP3(url,{signal,onProgress=()=>{}}={}){
+ const response=await fetch(url,{signal});if(!response.ok)throw new Error('Die MP3 konnte nicht geladen werden. Bitte erneut versuchen.');
+ const total=Number(response.headers?.get('content-length'))||0;if(total>MAX_FILE)throw new Error('Diese MP3 überschreitet 48 MiB.');
+ if(!response.body?.getReader){const blob=await response.blob();if(signal?.aborted)throw new DOMException('Download abgebrochen.','AbortError');if(blob.size>MAX_FILE)throw new Error('Diese MP3 überschreitet 48 MiB.');onProgress({loaded:blob.size,total:blob.size});return new Blob([blob],{type:'audio/mpeg'});}
+ const reader=response.body.getReader(),parts=[];let loaded=0;
+ try{while(true){if(signal?.aborted)throw new DOMException('Download abgebrochen.','AbortError');const {done,value}=await reader.read();if(done)break;loaded+=value.byteLength;if(loaded>MAX_FILE)throw new Error('Diese MP3 überschreitet 48 MiB.');parts.push(value);onProgress({loaded,total});}}catch(e){await reader.cancel().catch(()=>{});throw e;}finally{reader.releaseLock();}
+ onProgress({loaded,total:loaded});return new Blob(parts,{type:'audio/mpeg'});
+}
 export class OfflineMusic{
  constructor({indexedDB=globalThis.indexedDB,getOwner,getBlob,onChange=()=>{}}){Object.assign(this,{getOwner,getBlob,onChange});this.generation=0;this.owner=null;this.rows=[];this.limit=256*1024*1024;this.urls=new Map();this.db=new Promise((resolve,reject)=>{const r=indexedDB.open('neon-trinity-mobile-offline',1);r.onupgradeneeded=()=>r.result.createObjectStore('songs',{keyPath:'key'});r.onsuccess=()=>resolve(r.result);r.onerror=()=>reject(new Error('Offline-Speicher ist nicht verfügbar.'));});}
  setOwner(id){if(this.owner===id)return;this.owner=id||null;this.generation++;this.rows=[];for(const url of this.urls.values())URL.revokeObjectURL(url);this.urls.clear();}
  async tx(mode,callback){const db=await this.db;return new Promise((resolve,reject)=>{const t=db.transaction('songs',mode);let result;try{result=callback(t.objectStore('songs'));}catch(e){t.abort();reject(e);return;}t.oncomplete=()=>resolve(typeof result==='function'?result():result);t.onerror=()=>reject(t.error||new Error('Offline-Speicher voll oder gesperrt.'));t.onabort=()=>reject(new Error('Offline-Speichern abgebrochen.'));});}
  valid(owner,gen){return owner&&this.owner===owner&&this.getOwner()?.id===owner&&this.generation===gen;}
  async load(){const owner=this.owner,gen=this.generation;if(!owner)return [];const rows=await this.tx('readonly',s=>{const r=s.getAll();return ()=>r.result;});if(!this.valid(owner,gen))return [];this.rows=rows.filter(r=>r.owner===owner).map(({blob,...row})=>row);this.onChange();return this.rows;}
- async save(track){
+ async save(track,{signal,onProgress}={}){
   const owner=this.owner,gen=this.generation;if(!this.valid(owner,gen)||track.visibility==='local'||track.ownerId)throw new Error('Offline-Downloads sind für deine Bandmediathek verfügbar.');await this.load();if(!this.valid(owner,gen))throw new Error('Das Konto wurde gewechselt.');
   if(this.rows.some(r=>r.track.id===track.id&&r.track.blobId===track.blobId))return;
-  const blob=await this.getBlob(track.blobId);if(!this.valid(owner,gen))throw new Error('Das Konto wurde gewechselt.');
+  const blob=await this.getBlob(track.blobId,{signal,onProgress});if(signal?.aborted)throw new DOMException('Download abgebrochen.','AbortError');if(!this.valid(owner,gen))throw new Error('Das Konto wurde gewechselt.');
   if(!blob||blob.size<1||blob.size>MAX_FILE||blob.type!=='audio/mpeg')throw new Error('Diese Band-MP3 konnte nicht heruntergeladen werden.');const used=this.rows.filter(r=>r.track.id!==track.id).reduce((n,r)=>n+r.size,0);if(used+blob.size>this.limit)throw new Error('Dein Offline-Limit ist erreicht. Entferne Downloads oder erhöhe das Speicherlimit.');
   const bytes=new Uint8Array(await blob.arrayBuffer()),sha=[...new Uint8Array(await crypto.subtle.digest('SHA-256',bytes))].map(n=>n.toString(16).padStart(2,'0')).join('');if(!this.valid(owner,gen))throw new Error('Das Konto wurde gewechselt.');
   const clean={id:track.id,blobId:track.blobId,title:String(track.title||'').slice(0,160),artist:String(track.artist||'Neon Trinity').slice(0,160),duration:track.duration};
