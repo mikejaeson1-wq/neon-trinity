@@ -7,7 +7,7 @@ Das Gesamtupdate ergänzt gezieltes privates Songteilen und die 30 Punkte der ne
 - ID3-Vorschau beim MP3-Import, Songinformationen, Cover für ausgewählte Songs, fehlertolerante Suche und anpassbare Mediathek-Spalten und Zeilengrößen.
 - A–B-Abschnittsschleife für MP3s, Auswahl unterstützter Audioausgaben, Pause beim Gerätetrennen und optionale globale Windows-Tastenkürzel.
 - Benannte Miniplayer-Vorlagen, Andocken, Spielemodus, Mediatheksprüfung und zusätzliche geprüfte Ordnersicherungen. Bestehende Songs bleiben in ihrer bisherigen Ablage.
-- TV-Webplayer mit Fernbedienung und QR-Anmeldung über das Handy. Gerätezugang erlaubt nur Musikhören; private Songs nur nach ausdrücklicher Freigabe. Spotify nutzt die offizielle TV-App. Fire OS und Vega haben unterschiedliche Installationswege; reale Fire-TV-Hardware wurde hier nicht geprüft.
+- Signierte Fire-OS-App als zusätzlicher APK-Download und TV-Webplayer mit Fernbedienung und QR-Anmeldung über das Handy. Gerätezugang erlaubt nur Musikhören; private Songs nur nach ausdrücklicher Freigabe. Spotify nutzt die offizielle TV-App. Fire OS und Vega haben unterschiedliche Installationswege; reale Fire-TV-Hardware wurde hier nicht geprüft.
 
 Die vollständige Bedienübersicht mit allen 30 Punkten steht in docs/QOL-1.2.md. Die beiden additiven Supabase-Erweiterungen sind für das gemeinsame Projekt eingerichtet. Das lokale Datenformat bleibt Version 1; ein Update darf die bisherige Mediathek nicht ersetzen.
 

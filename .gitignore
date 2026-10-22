@@ -16,3 +16,5 @@ supabase/.temp/
 release-tv/
 *.keystore
 *.jks
+*.p12
+*.idsig

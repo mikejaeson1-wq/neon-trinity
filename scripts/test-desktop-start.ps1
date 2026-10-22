@@ -23,3 +23,6 @@ try {
 }
 node scripts/test-mini-window.mjs $desktopApps[0].FullName
 if ($LASTEXITCODE -ne 0) { throw 'Der native Miniplayer- und Repeat-Test ist fehlgeschlagen.' }
+
+node scripts/test-next-window.mjs $desktopApps[0].FullName
+if ($LASTEXITCODE -ne 0) { throw 'Der native Test der neuen Komfortfunktionen ist fehlgeschlagen.' }

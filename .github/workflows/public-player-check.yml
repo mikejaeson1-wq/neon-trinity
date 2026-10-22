@@ -35,6 +35,8 @@ jobs:
           const manifest=await (await fetchChecked(base+'latest.yml')).text();
           assert.equal(manifest.match(/^version:\s*(\S+)/m)?.[1],STUDIO_VERSION);
           assert.equal(manifest.match(/^\s+sha512:\s*(\S+)/m)?.[1],metadata.installer.sha512);
+          const tvLocal=JSON.parse(await readFile('tv/release.json','utf8')),tvRemote=await waitJSON(base+'neon-tv.json',v=>v.sha256===tvLocal.sha256);
+          assert.equal(tvRemote.certificateSha256,tvLocal.certificateSha256);const tvAPK=await fetchChecked(base+tvRemote.name,{method:'HEAD'});assert.equal(tvAPK.status,200);assert.equal(Number(tvAPK.headers.get('content-length')),tvRemote.size);
           const installer=await fetchChecked(base+metadata.installer.name,{method:'HEAD'});assert.equal(installer.status,200);assert.equal(Number(installer.headers.get('content-length')),metadata.installer.size);
-          console.log(JSON.stringify({version:STUDIO_VERSION,publicFiles:names.length,websiteCORS:true,installerAvailable:true,windowsSigned:metadata.signed}));
+          console.log(JSON.stringify({version:STUDIO_VERSION,publicFiles:names.length,websiteCORS:true,installerAvailable:true,tvAPKAvailable:true,windowsSigned:metadata.signed}));
           NODE

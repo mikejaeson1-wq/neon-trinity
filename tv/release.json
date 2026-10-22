@@ -1,0 +1,17 @@
+{
+  "version": "1.2.0",
+  "name": "Neon-Trinity-TV.apk",
+  "package": "music.neontrinity.tv",
+  "minSdk": 23,
+  "platform": "Fire OS / Android TV; not Vega APK",
+  "size": 111131,
+  "sha256": "eeead5b904d142dd05820fd4180b20b4f2b3e4e8dab9f01c01736bb479693d61",
+  "certificateSha256": "452b58dbe230633295fdc923c5ec295d62c86dbb0062b10436ceb5bfd1990fa0",
+  "sourceCommit": "f754358ab8c11835e5f21b88ced4622a7c3d4ad1",
+  "sources": {
+    "tv/android/AndroidManifest.xml": "de388902e13dc818692cfe1f7fac0e37b454aaf218ef79e3bba1f779ff6c0c75",
+    "tv/android/src/music/neontrinity/tv/MainActivity.java": "45e9c048c12f39a7b2f21f5abc96013fbffa7838638d9888693ece303714f95d",
+    "scripts/build-tv.py": "e41c9b265ba73d46b877c08b805dcd3695d4fc703905fa972fd3890c9545183a",
+    "app/assets/icon.png": "7f257456e2b6b2df558edea80195039df243c42f2ad5124ec421a62043999839"
+  }
+}
