@@ -382,7 +382,8 @@ function initializeQoL(){
   setQueue:ids=>{queue=ids.filter(id=>visibleTrack(id));audio.cancelNext?.();prepareNextAudio().catch(()=>{});updateDesktopPlayer();},
   persist:(again=false,local=true)=>(local?persistLocal(again):persist(again)),render,toast,fail,modal:showModal,closeModal,play:playTrack,putBlob,releaseURL,
   cancelNext:()=>audio.cancelNext?.(),locked:()=>!!upgrade?.live.enabled,undo:id=>upgrade.undo(id),openMini:()=>action('mini-player'),prepareSpotify:prepareSpotifyPlayback,
+  formContexts:()=>({work:upgrade.selectedKind+':'+upgrade.selection,comment:upgrade.selection,skin:upgrade.draftSkin.id,scene:upgrade.draftScene.id,privacy:currentId||'',mascot:team.user?.id||'local-device'}),
   restoreSearch:value=>{search=value;$('#global-search').value=value;},
   restorePreferences:p=>{playGeneration++;audio.pause();audio.removeAttribute('src');currentId=null;queue=[];remoteTrack=null;playbackSource='studio';repeat=p.repeat;shuffle=p.shuffle;audio.volume=p.volume;queueNavigator.reset();}
- });qol.sync();
+ });qol.sync();search=qol.settings().views[location.hash.slice(1)||'overview']?.search||'';$('#global-search').value=search;
 }

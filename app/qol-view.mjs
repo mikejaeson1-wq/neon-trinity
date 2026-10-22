@@ -33,21 +33,24 @@ export class StudioQoL{
   this.drafts??=new Map();const fields=[];
   for(const el of document.querySelectorAll('#main form input[name],#main form textarea[name],#main form select[name]')){
    if(['file','password'].includes(el.type)||/token|secret|code|clientId|invited/i.test(el.name))continue;
-   const form=el.closest('form'),formKey=form.id||form.dataset.plusForm||'';if(!formKey)continue;
-   fields.push({formKey,name:el.name,value:String(el.value||'').slice(0,120000),checked:el.checked,type:el.type});
+   const form=el.closest('form'),base=form.id||form.dataset.plusForm||'',formKey=base+'/'+(form.dataset.qolContext||'');if(!base)continue;
+   const index=[...form.querySelectorAll('[name]')].filter(e=>e.name===el.name).indexOf(el);
+   fields.push({formKey,name:el.name,index,value:String(el.value||'').slice(0,120000),checked:el.checked,type:el.type});
   }
-  this.drafts.set(this.owner+'/'+this.view,fields);
+  const key=this.owner+'/'+this.view,keys=new Set(fields.map(f=>f.formKey)),previous=this.drafts.get(key)||[];
+  this.drafts.set(key,[...previous.filter(f=>!keys.has(f.formKey)),...fields].slice(-3000));
  }
  afterRender(view){
   this.sync();this.restoring=true;view=/^(search|overview|library|local|suno|spotify|player|studio|albums|album|playlists|events|team|mobile|visualizer|profiles|live|settings|listen)(\/[-a-zA-Z0-9]+)?$/.test(view)?view:'overview';const previous=this.view;this.view=view;const root=$('#main');
   if(!root){this.restoring=false;return;}
+  const contexts=this.formContexts?.()||{};for(const form of root.querySelectorAll('form'))form.dataset.qolContext=contexts[form.id||form.dataset.plusForm]||'';
   root.insertAdjacentHTML('afterbegin','<div class="qol-topline">'+button('pin',this.settings().pins.some(p=>p.route===view)?'★ Angeheftet':'☆ Ansicht anheften')+'<span id="qol-sleep-status" role="status"></span></div>');
   if(['library','local'].includes(view))this.libraryTools(view);
   if(view==='studio/queue')this.queueTools();
   if(['player','settings'].includes(view))root.insertAdjacentHTML('beforeend',this.settingsView());
   this.renderPins();this.renderResume();
-  const draft=this.drafts?.get(this.owner+'/'+view);if(draft)for(const row of draft){for(const form of root.querySelectorAll('form'))if((form.id||form.dataset.plusForm)===row.formKey){const el=[...form.elements||form.querySelectorAll('[name]')].find(el=>el.name===row.name);if(el){if(['checkbox','radio'].includes(row.type))el.checked=row.checked;else if(el.tagName==='SELECT'){for(const o of el.querySelectorAll('option'))o.selected=o.value===row.value;}else el.value=row.value;}}}
-  const saved=this.settings().views[view];if(saved&&previous!==view){this.restoreSearch(saved.search||'');}
+  const draft=this.drafts?.get(this.owner+'/'+view);if(draft)for(const row of draft){for(const form of root.querySelectorAll('form'))if((form.id||form.dataset.plusForm)+'/'+(form.dataset.qolContext||'')===row.formKey){const el=[...form.elements||form.querySelectorAll('[name]')].filter(el=>el.name===row.name)[row.index||0];if(el){if(['checkbox','radio'].includes(row.type))el.checked=row.checked;else if(el.tagName==='SELECT'){for(const o of el.querySelectorAll('option'))o.selected=o.value===row.value;}else el.value=row.value;}}}
+  const saved=this.settings().views[view];
   if(saved)window.scrollTo?.({top:saved.scroll||0});
   if(previous===view&&this.focus){const el=document.getElementById(this.focus.id);if(el){el.focus?.({preventScroll:true});try{el.setSelectionRange?.(this.focus.start,this.focus.end);}catch{}}}
   this.bind();this.restoring=false;this.updateBadges();this.showNews();
