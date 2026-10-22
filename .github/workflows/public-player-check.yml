@@ -29,6 +29,7 @@ jobs:
           assert.ok(['*','ntapp://studio'].includes(marker.headers.get('access-control-allow-origin')),'Website-Status ist durch CORS blockiert.');
           const source=await readFile('app/public-cloud.mjs','utf8'),list=source.match(/for\(const path of \[([^\]]+)\]/)[1],names=[...list.matchAll(/'([^']+)'/g)].map(m=>m[1]);
           for(let n=0;n<names.length;n+=4)await Promise.all(names.slice(n,n+4).map(async name=>{const r=await fetchChecked(CLOUD.publicBase+'/'+name,{method:'HEAD'});assert.equal(r.status,200,'Öffentliche Datei fehlt: '+name);}));
+          const tvScript=await fetchChecked(CLOUD.publicBase+'/tv.mjs');assert.equal(await tvScript.text(),await readFile('docs/tv.mjs','utf8'),'Der TV-Player verwendet noch einen alten Stand.');
           const base='https://github.com/mikejaeson1-wq/neon-trinity/releases/download/v'+STUDIO_VERSION+'/';
           const metadata=await waitJSON(base+'neon-compat.json',v=>v.version===STUDIO_VERSION);
           assert.equal(metadata.format,'neon-trinity-release');assert.equal(metadata.rollbackSafe,true);assert.ok(metadata.checks.includes('windows-startup'));

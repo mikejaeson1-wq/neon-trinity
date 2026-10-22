@@ -24,6 +24,8 @@ jobs:
         run: npm install --global pnpm@11.25.0
       - name: Abhängigkeiten aus Lockfile installieren
         run: pnpm install --frozen-lockfile
+      - name: TV-Paket und plattformunabhängige Quellcodeprüfung
+        run: node scripts/prepare-tv-release.mjs
       - name: Studio testen
         run: pnpm test
       - name: Windows-Setup bauen
