@@ -1,16 +1,12 @@
-# Neon Trinity Studio 1.1.0
+# Neon Trinity Studio 1.1.1
 
-Das Komfortupdate setzt die 25 Punkte der QoL-Roadmap um und macht den Miniplayer zu einem frei skalierbaren Fenster.
+Dieses Fehlerupdate behebt die scheinbar leere lokale Mediathek nach Version 1.1.0 und den wiederkehrenden Fehler „Illegal invocation“ beim Mithören.
 
-- **Repeat:** einmal drücken wiederholt die Playlist, zweimal den einzelnen Song, dreimal schaltet Repeat aus. Einheitlich im Studio, Miniplayer und auf dem Handy; Repeat 1 bleibt deutlich erkennbar.
-- **Miniplayer:** an Rändern/Ecken frei skalieren oder Breite und Höhe eingeben. Größe, Position und „Immer im Vordergrund“ bleiben gespeichert. Die Playlist nutzt den zusätzlichen Platz. Classic bleibt erhalten.
-- **Wiedergabe:** gespeicherte Warteschlange und Songposition per Klick fortsetzen; sinnvoller Vorheriger-Titel-Button, ±10 Sekunden, Mausrad-Lautstärke, Stummschalten und Shuffle mit Hörverlauf.
-- **Warteschlange:** durchsuchen, mehrere Titel auswählen, gemeinsam verschieben oder entfernen, bereits gespielte Einträge aufräumen und direkt rückgängig machen. Auch die Miniplayer-Playlist kann durchsucht werden.
-- **Mediathek:** globale Suche mit Quellenfiltern, gemerkte Ansichten, persönlicher Schnellzugriff, direkte Titel-/Interpretenbearbeitung und gemeinsame Metadatenänderungen. Duplikate vergleichen und fehlende lokale Kopien anhand ihrer Prüfsumme erneut zuordnen.
-- **Komfort:** sichtbarer Importfortschritt mit Abbrechen, verständlichere Fehleraktionen, erneute Verbindung nach Netzwerkausfällen, Sleep-Timer, sichtbare Freigaben und anpassbare Tastenkürzel mit Konfliktprüfung.
-- **Handy:** größere Player-Tasten, drei Repeat-Stufen, Shuffle-Verlauf, Zeitsprünge sowie Offline-Downloadfortschritt, Abbrechen, Speicheranzeige und Mehrfachauswahl beim Entfernen.
-- **Nach dem Update:** Neuerungen direkt im Studio mit Links zu den Einstellungen.
+- **Bisherige lokale Ablage:** Das Studio legt seinen Datenordner wieder vor dem ersten Speicherzugriff eindeutig auf „Neon Trinity Studio“ fest. Version 1.1.0 konnte durch die neue Miniplayer-Einstellung zu früh einen zweiten Profilordner öffnen. Dadurch waren die zuvor gespeicherten Songs, Playlists und Sitzungen dort nicht sichtbar.
+- **Vorhandene Daten erhalten:** Es werden keine Mediatheken gelöscht, verschoben oder zwischen Konten vermischt. Ein zusätzlich angelegter Ordner aus 1.1.0 bleibt erhalten. Neu darin importierte Songs erscheinen deshalb nicht automatisch in der ursprünglichen Ablage.
+- **Mithören:** Der Browser-Netzwerkaufruf ist korrekt gebunden; die wiederkehrende Meldung „Failed to execute fetch on Window: Illegal invocation“ wird behoben.
+- **Upgrade-Prüfung:** Zusätzlich zu den bisherigen Prüfungen wird auf Windows die tatsächliche Installerfolge 1.0.1 → 1.1.0 → 1.1.1 mit gespeicherten Band-Songs, privaten Songs zweier Konten und einer lokalen Playlist durchlaufen. Audiodaten und die zusätzliche Ablage werden auf Erhalt geprüft.
 
-Die ausführliche Liste und Bedienhinweise stehen in docs/QOL-1.1.md. Die bisherigen persönlichen Inhalte und die gemeinsame Mediathek bleiben erhalten. Für diese Version ist keine neue Supabase-Migration nötig.
+Das Studio vollständig schließen und das neue Setup über die vorhandene Installation installieren. Eine Deinstallation oder ein erneuter Import ist für diese Korrektur nicht erforderlich. Ohne Zugriff auf den jeweiligen Computer lässt sich nicht vorab bestätigen, welche Dateien dort noch vorhanden sind.
 
-Spotify wird über das eigene Premium-Konto gesteuert. Suche umfasst bereits geladene eigene Inhalte; Warteschlangenbearbeitung im Studio gilt für eigene MP3s. Der Sleep-Timer läuft bei geöffnetem Studio. Private lokale Sammlungen bleiben dem eigenen Konto auf diesem Gerät zugeordnet.
+Die Komfortfunktionen aus 1.1.0 bleiben enthalten: drei Repeat-Stufen, frei skalierbarer Miniplayer, gespeicherte Warteschlange, Such- und Mediatheksfunktionen, Sleep-Timer sowie die Handy-Verbesserungen. Die ausführliche Liste steht in docs/QOL-1.1.md. Das Datenformat bleibt unverändert; keine Supabase-Migration erforderlich.

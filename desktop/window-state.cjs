@@ -8,7 +8,8 @@ function visibleBounds(saved={},displays=[]){
  return {width,height,x:Math.max(area.x,Math.min(area.x+area.width-width,Number.isFinite(saved.x)?Math.round(saved.x):area.x+40)),y:Math.max(area.y,Math.min(area.y+area.height-height,Number.isFinite(saved.y)?Math.round(saved.y):area.y+40))};
 }
 class MiniWindowState{
- constructor(app){this.file=path.join(app.getPath('userData'),'mini-window.json');this.value={alwaysOnTop:true};this.chain=Promise.resolve();}
+ constructor(app){this.app=app;this.value={alwaysOnTop:true};this.chain=Promise.resolve();}
+ get file(){return path.join(this.app.getPath('userData'),'mini-window.json');}
  async load(){try{const saved=JSON.parse(await fs.readFile(this.file,'utf8'));this.value={...saved,alwaysOnTop:saved.alwaysOnTop!==false};}catch{}return this.value;}
  save(bounds,alwaysOnTop){this.value={...bounds,alwaysOnTop:!!alwaysOnTop};const data=JSON.stringify(this.value);this.chain=this.chain.catch(()=>{}).then(async()=>{await fs.mkdir(path.dirname(this.file),{recursive:true});await fs.writeFile(this.file+'.tmp',data);await fs.rename(this.file+'.tmp',this.file);});return this.chain;}
 }

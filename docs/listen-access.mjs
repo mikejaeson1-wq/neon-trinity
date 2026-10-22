@@ -1,6 +1,6 @@
 import {CLOUD} from './cloud-config.mjs';
 export class ListeningAPI{
- constructor({client=null,fetcher=globalThis.fetch}={}){Object.assign(this,{client,fetcher});this.owner=null;this.tickets=new Map();}
+ constructor({client=null,fetcher=globalThis.fetch.bind(globalThis)}={}){Object.assign(this,{client,fetcher});this.owner=null;this.tickets=new Map();}
  async session(){const result=await this.client?.auth.getSession();if(result?.error)throw result.error;const session=result?.data?.session||null,owner=session?.user?.id||null;if(this.owner!==owner){this.owner=owner;this.tickets.clear();}return session;}
  async raw(path,method,data,session,extra={}){
   const id=path.match(/^\/listen\/([a-f0-9]{64})/)?.[1],ticket=id&&this.tickets.get(id),headers={apikey:CLOUD.key,'Content-Type':'application/json',...extra};if(session)headers.Authorization='Bearer '+session.access_token;if(ticket?.expiresAt>Date.now())headers['x-listen-ticket']=ticket.accessToken;

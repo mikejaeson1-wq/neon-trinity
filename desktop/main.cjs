@@ -1,4 +1,6 @@
 const { app, BrowserWindow, ipcMain, protocol, net, shell, safeStorage, Menu, screen, dialog } = require('electron');
+const {configureStudioProfile}=require('./profile.cjs');
+configureStudioProfile(app);
 const path = require('node:path');
 const {visibleBounds,MiniWindowState}=require('./window-state.cjs');
 const miniPreferences=new MiniWindowState(app);
@@ -17,7 +19,6 @@ const recovery=new StudioRecovery({app,beforeInstall:()=>{if(backups.busy)throw 
 const {StudioUpdater}=require('./updates.cjs');
 const {autoUpdater}=require('electron-updater');
 protocol.registerSchemesAsPrivileged([{scheme:'ntapp',privileges:{standard:true,secure:true,supportFetchAPI:true,corsEnabled:true,stream:true}}]);
-app.setName('Neon Trinity Studio');
 const primaryInstance=app.requestSingleInstanceLock();
 if(!primaryInstance)app.quit();
 let window,studioUpdater,pendingRoom=roomFromArguments(process.argv);

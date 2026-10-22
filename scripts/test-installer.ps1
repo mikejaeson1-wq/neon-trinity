@@ -27,3 +27,5 @@ Install-Studio
 if ((Get-Content $sentinel -Raw).Trim() -ne 'keep-local-data') { throw 'Die erneute Installation hat lokale Daten verändert.' }
 Remove-Item $sentinel
 Write-Output 'Windows-Installation, Programmversion, Update-Konfiguration, Mithören-Protokoll und Erhalt der App-Daten bestätigt.'
+node scripts/test-profile-upgrade.mjs $installer $apps[0].FullName
+if ($LASTEXITCODE -ne 0) { throw 'Der Profil-Upgrade-Test mit echten privaten MP3-Daten ist fehlgeschlagen.' }

@@ -9,7 +9,7 @@ permissions:
 jobs:
   verify:
     runs-on: ubuntu-latest
-    timeout-minutes: 8
+    timeout-minutes: 20
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
       - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
@@ -23,7 +23,7 @@ jobs:
           import {CLOUD} from './app/cloud-config.mjs';
           import {STUDIO_VERSION} from './app/version.mjs';
           const fetchChecked=(url,options={})=>fetch(url,{...options,cache:'no-store',signal:AbortSignal.timeout(15000)});
-          async function waitJSON(url,accept){for(let n=0;n<60;n++){try{const r=await fetchChecked(url);if(r.ok){const value=await r.json();if(accept(value))return value;}}catch{}await new Promise(resolve=>setTimeout(resolve,4000));}throw new Error('Die Veröffentlichung war nicht rechtzeitig erreichbar.');}
+          async function waitJSON(url,accept){for(let n=0;n<150;n++){try{const r=await fetchChecked(url);if(r.ok){const value=await r.json();if(accept(value))return value;}}catch{}await new Promise(resolve=>setTimeout(resolve,4000));}throw new Error('Die Veröffentlichung war nicht rechtzeitig erreichbar.');}
           await waitJSON(CLOUD.publicBase+'/neon-trinity.json',v=>v.studioVersion===STUDIO_VERSION);
           const marker=await fetchChecked(CLOUD.publicBase+'/neon-trinity.json',{headers:{Origin:'ntapp://studio'}});
           assert.ok(['*','ntapp://studio'].includes(marker.headers.get('access-control-allow-origin')),'Website-Status ist durch CORS blockiert.');
