@@ -1,6 +1,7 @@
 const {contextBridge,ipcRenderer}=require('electron');
 async function call(name,...args){const r=await ipcRenderer.invoke(name,...args);if(!r.ok){const e=new Error(r.message);e.status=r.status;e.data=r.data;throw e;}return r.value;}
 contextBridge.exposeInMainWorld('neonDesktop',{
+  qolConfigure:(input,owner)=>call('qol:configure',input,owner),backupExternalChoose:owner=>call('backup:external-choose',owner),backupExternalStatus:owner=>call('backup:external-status',owner),backupExternalForget:owner=>call('backup:external-forget',owner),
   miniPin:value=>call('player:mini-pin',value),miniPreferences:()=>call('player:mini-preferences'),miniBounds:value=>call('player:mini-bounds',value),
   releaseSecurity:()=>call('studio:release-security'),recoveryList:()=>call('studio:recovery-list'),recoveryDownload:version=>call('studio:recovery-download',version),recoveryInstall:()=>call('studio:recovery-install'),
   pushSpectrum:values=>call('player:spectrum',values),onSpectrum:callback=>{ipcRenderer.on('player-spectrum',(_,values)=>callback(values));},

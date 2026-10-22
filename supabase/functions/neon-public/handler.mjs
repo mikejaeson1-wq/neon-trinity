@@ -1,3 +1,4 @@
+import {tvRoute} from './tv.mjs';
 import {roomRoute,authorizeRoom,listeners,installPreferences} from './rooms.mjs';
 const cors={'Access-Control-Allow-Origin':'*','Access-Control-Allow-Headers':'authorization, apikey, content-type, x-client-info, x-listen-ticket, x-listen-guest','Access-Control-Allow-Methods':'GET,POST,PATCH,DELETE,OPTIONS','Cache-Control':'no-store','Content-Type':'application/json'};
 const error=(message,status=400)=>Object.assign(new Error(message),{status});
@@ -48,6 +49,7 @@ export function makeHandler(createClient,env){
      const actorResult=await userDb.rpc('nt_identity');if(actorResult.error||!actorResult.data?.id)throw error('Das Discord-Konto konnte nicht geprüft werden.',403);authenticated={actor:actorResult.data,userDb};}
     if(member&&!authenticated.actor.allowed)throw error('Dieses Discord-Konto ist nicht für die Band freigeschaltet.',403);return authenticated;
    };
+   const tv=await tvRoute({req,parts,db,authenticate});if(tv)return response(tv);
    const extended=await roomRoute({req,parts,db,authenticate});if(extended)return response(extended.data,extended.status||200);
    const mediaRoute=parts[0]==='listen-media';
    if(!['listen','listen-media'].includes(parts[0])||parts.length>2)throw error('Unbekannte Anfrage.',404);

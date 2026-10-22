@@ -11,3 +11,8 @@ release-*/
 .wrangler/
 server/*.local.json
 server/.dev.vars*
+
+supabase/.temp/
+release-tv/
+*.keystore
+*.jks

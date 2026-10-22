@@ -11,7 +11,7 @@ export class AudioVisualizer{
   attach(canvas,settings){this.detach();this.canvas=canvas;this.settings=normalizeAppearance({visualizer:settings}).visualizer;if(!canvas)return;this.ctx=canvas.getContext?.('2d');if(!this.ctx)return;this.draw();}
   configure(settings){this.settings=normalizeAppearance({visualizer:settings}).visualizer;}
   configureEqualizer(settings){this.equalizer=normalizeEqualizer(settings);if(this.filters)applyEqualizer(this,this.equalizer);}
-  spectrum(){if(!this.analyser||this.audio.paused)return [];this.analyser.getByteFrequencyData(this.frequencies);return Array.from({length:24},(_,i)=>Math.round(this.frequencies[Math.floor(2+(i/24)**1.7*450)]/255*100));}
+  spectrum(){if(this.reducedEffects)return [];if(!this.analyser||this.audio.paused)return [];this.analyser.getByteFrequencyData(this.frequencies);return Array.from({length:24},(_,i)=>Math.round(this.frequencies[Math.floor(2+(i/24)**1.7*450)]/255*100));}
   async resume(){
     if(!this.AudioContextClass)return false;
     if(!this.context){this.context=new this.AudioContextClass();this.analyser=this.context.createAnalyser();this.analyser.fftSize=2048;this.analyser.smoothingTimeConstant=.78;this.source=this.context.createMediaElementSource(this.audio.element||this.audio);this.source.connect(this.analyser);this.analyser.connect(this.context.destination);this.frequencies=new Uint8Array(this.analyser.frequencyBinCount);this.wave=new Uint8Array(this.analyser.fftSize);}
@@ -20,7 +20,7 @@ export class AudioVisualizer{
       this.panner=this.context.createStereoPanner?.();this.limiter=this.context.createDynamicsCompressor();this.limiter.threshold.value=-1;this.limiter.knee.value=0;this.limiter.ratio.value=20;this.limiter.attack.value=.003;this.limiter.release.value=.15;
       let previous=this.source;for(const node of [this.preamp,...this.filters,...(this.panner?[this.panner]:[]),this.limiter]){previous.connect(node);previous=node;}previous.connect(this.analyser);applyEqualizer(this,this.equalizer);
     }
-    if(this.context.state==='suspended')await this.context.resume();return true;
+    if(this.context.setSinkId&&(this.outputDevice||'')!==(this.appliedOutput||'')){await this.context.setSinkId(this.outputDevice||'');this.appliedOutput=this.outputDevice||'';}if(this.context.state==='suspended')await this.context.resume();return true;
   }
   configureScene(value){this.scene=value?sceneInput(value):null;if(this.scene?.image&&typeof Image!=='undefined'){this.sceneImage=new Image();this.sceneImage.src=this.scene.image;}else this.sceneImage=null;}
   drawScene(c,w,h,value){

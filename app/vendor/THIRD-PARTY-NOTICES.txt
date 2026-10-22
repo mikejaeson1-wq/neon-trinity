@@ -4,3 +4,5 @@ Upstream source: https://github.com/shijinyu/lamejs/tree/1fb0ef5fa177413107e2e10
 Corresponding source and build files are included in lamejs-1.2.7-source.zip.
 The bundled mp3-encoder.mjs module can be replaced or rebuilt with scripts/build-vendor.mjs.
 No changes were made to the upstream encoder.
+
+QR code generation: qrcode 1.5.4, MIT; see qrcode.LICENSE.

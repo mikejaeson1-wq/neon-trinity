@@ -1,7 +1,8 @@
-const { app, BrowserWindow, ipcMain, protocol, net, shell, safeStorage, Menu, screen, dialog } = require('electron');
+const { app, BrowserWindow, ipcMain, protocol, net, shell, safeStorage, Menu, screen, dialog, globalShortcut } = require('electron');
 const {configureStudioProfile}=require('./profile.cjs');
 configureStudioProfile(app);
 const path = require('node:path');
+const {DesktopQoL,snapBounds}=require('./qol.cjs');
 const {visibleBounds,MiniWindowState}=require('./window-state.cjs');
 const miniPreferences=new MiniWindowState(app);
 const fs = require('node:fs/promises');
@@ -29,6 +30,7 @@ const spotify=new DesktopSpotify({app,safeStorage,shell});
 const suno=new SunoDownloads({app,dialog,isOwner:owner=>{try{return spotifyOwner(owner)===owner;}catch{return false;}}});
 const backups=new StudioBackups({app,isOwner:owner=>{try{return spotifyOwner(owner)===owner;}catch{return false;}}});
 const presence=new DiscordPresence(message=>{if(window&&!window.isDestroyed())window.webContents.send('discord-status',message);});
+const desktopQoL=new DesktopQoL({app,shortcuts:globalShortcut,authenticate:spotifyOwner,send:message=>window?.webContents.send('player-command',message),getPlayer:()=>playerState});
 const tokenPath=()=>path.join(app.getPath('userData'),'github-token.enc');
 function secureStorageAvailable(){return safeStorage.isEncryptionAvailable() && (process.platform!=='linux'||safeStorage.getSelectedStorageBackend()!=='basic_text');}
 async function readToken(){try{if(!secureStorageAvailable())return '';return safeStorage.decryptString(await fs.readFile(tokenPath()));}catch{return '';}}
@@ -121,7 +123,7 @@ if(primaryInstance)app.whenReady().then(async()=>{
   handle('player:close-mini',()=>{miniWindow?.close();return true;});
   handle('player:mini-pin',value=>{if(typeof value!=='boolean')throw new Error('Ungültige Fenstereinstellung.');if(miniWindow&&!miniWindow.isDestroyed()){miniWindow.setAlwaysOnTop(value);miniPreferences.save(miniWindow.getBounds(),value).catch(()=>{});}else miniPreferences.value.alwaysOnTop=value;return value;});
   handle('player:mini-preferences',()=>({alwaysOnTop:miniPreferences.value.alwaysOnTop!==false}));
-  handle('player:mini-bounds',input=>{if(!miniWindow||miniWindow.isDestroyed())throw new Error('Öffne zuerst den Miniplayer.');if(input!=null){if(!Number.isFinite(input.width)||!Number.isFinite(input.height))throw new Error('Bitte eine gültige Fenstergröße eingeben.');const bounds=visibleBounds({...miniWindow.getBounds(),width:input.width,height:input.height},screen.getAllDisplays());miniWindow.setBounds(bounds);miniPreferences.save(miniWindow.getBounds(),miniWindow.isAlwaysOnTop()).catch(()=>{});}return miniWindow.getBounds();});
+  handle('player:mini-bounds',input=>{if(!miniWindow||miniWindow.isDestroyed())throw new Error('Öffne zuerst den Miniplayer.');if(input!=null){if(!Number.isFinite(input.width)||!Number.isFinite(input.height))throw new Error('Bitte eine gültige Fenstergröße eingeben.');const bounds=visibleBounds({...miniWindow.getBounds(),width:input.width,height:input.height,...(Number.isFinite(input.x)?{x:input.x}:{}),...(Number.isFinite(input.y)?{y:input.y}:{})},screen.getAllDisplays());miniWindow.setBounds(bounds);miniPreferences.save(miniWindow.getBounds(),miniWindow.isAlwaysOnTop()).catch(()=>{});}return miniWindow.getBounds();});
   handle('player:show-studio',()=>{window.show();window.focus();return true;});
   studioUpdater=new StudioUpdater({updater:autoUpdater,version:app.getVersion(),supported:app.isPackaged&&process.platform==='win32'&&!process.env.PORTABLE_EXECUTABLE_FILE,onStatus:state=>{if(window&&!window.isDestroyed())window.webContents.send('studio-update-status',state);},beforeInstall:()=>{quitting=true;},afterInstallError:()=>{quitting=false;}});
   handle('studio:release-security',()=>authenticode(process.execPath));
@@ -133,6 +135,10 @@ if(primaryInstance)app.whenReady().then(async()=>{
   handle('studio:update-download',()=>studioUpdater.download());
   handle('studio:update-install',()=>{if(backups.busy)throw new Error('Bitte die laufende Sicherung abschließen.');return studioUpdater.install();});
   let lastSpectrum=0;ipcMain.handle('player:spectrum',async(event,values)=>{trusted(event);if(event.sender!==window.webContents)return {ok:false,message:'Nur der Hauptplayer darf Audiodaten übertragen.'};if(Date.now()-lastSpectrum<70)return {ok:true,value:false};lastSpectrum=Date.now();const spectrum=(Array.isArray(values)?values:[]).slice(0,24).map(n=>Math.min(100,Math.max(0,Number(n)||0)));if(miniWindow&&!miniWindow.isDestroyed())miniWindow.webContents.send('player-spectrum',spectrum);return {ok:true,value:true};});
+  handle('qol:configure',(input,owner)=>desktopQoL.configure(input||{},owner));
+  handle('backup:external-choose',async owner=>{backups.assert(owner);const result=await dialog.showOpenDialog(window,{title:'Zusätzlichen Sicherungsordner auswählen',properties:['openDirectory','createDirectory']});if(!result.canceled&&result.filePaths[0])await backups.setExternal(owner,result.filePaths[0]);return backups.externalStatus(owner);});
+  handle('backup:external-status',owner=>backups.externalStatus(owner));
+  handle('backup:external-forget',owner=>backups.setExternal(owner,null));
   createWindow();
   studioUpdater.start();
   Menu.setApplicationMenu(Menu.buildFromTemplate([{label:'Studio',submenu:[{role:'reload',label:'Neu laden'},{role:'togglefullscreen',label:'Vollbild'},{type:'separator'},{role:'quit',label:'Beenden'}]},{label:'Bearbeiten',submenu:[{role:'undo',label:'Rückgängig'},{role:'redo',label:'Wiederholen'},{type:'separator'},{role:'cut',label:'Ausschneiden'},{role:'copy',label:'Kopieren'},{role:'paste',label:'Einfügen'},{role:'selectAll',label:'Alles auswählen'}]},{label:'Ansicht',submenu:[{role:'resetZoom',label:'Originalgröße'},{role:'zoomIn',label:'Vergrößern'},{role:'zoomOut',label:'Verkleinern'}]}]));
@@ -142,7 +148,7 @@ function createWindow(){
   window=new BrowserWindow({width:1440,height:960,minWidth:720,minHeight:600,title:'Neon Trinity Studio',backgroundColor:'#111116',icon:path.join(__dirname,'../app/assets/icon.png'),webPreferences:{preload:path.join(__dirname,'preload.cjs'),contextIsolation:true,nodeIntegration:false,sandbox:true,webSecurity:true,backgroundThrottling:false,autoplayPolicy:'no-user-gesture-required'}});
   window.webContents.setWindowOpenHandler(({url})=>{if(url==='ntapp://studio/team-help.html'||url==='ntapp://studio/privacy.html'){const help=new BrowserWindow({width:940,height:850,title:'Neon Trinity · Team einrichten',backgroundColor:'#100919',webPreferences:{contextIsolation:true,nodeIntegration:false,sandbox:true,webSecurity:true}});help.webContents.setWindowOpenHandler(({url})=>{openLink(url);return {action:'deny'};});help.webContents.on('will-navigate',(event,target)=>{event.preventDefault();openLink(target);});help.loadURL(url);}else openLink(url);return {action:'deny'};});
   window.webContents.on('will-navigate',(e,url)=>{if(!url.startsWith('ntapp://studio/')){e.preventDefault();openLink(url);}});
-  window.webContents.session.setPermissionRequestHandler((_contents,_permission,callback)=>callback(false));
+  window.webContents.session.setPermissionRequestHandler((contents,permission,callback)=>callback(permission==='speaker-selection'&&contents.getURL().startsWith('ntapp://studio/')));
   window.webContents.session.on('will-download',(_event,item)=>{if(!item.getURL().startsWith('blob:ntapp://studio/'))item.cancel();});
   window.on('close',event=>{if(!quitting&&miniWindow&&!miniWindow.isDestroyed()){event.preventDefault();window.hide();}});
   window.loadURL('ntapp://studio/index.html');
@@ -162,12 +168,12 @@ function openMini(){
  miniWindow.webContents.setWindowOpenHandler(()=>({action:'deny'}));miniWindow.webContents.on('will-navigate',event=>event.preventDefault());
  miniWindow.webContents.on('did-finish-load',()=>miniWindow.webContents.send('player-state',playerState));
  let timer;const remember=()=>{clearTimeout(timer);timer=setTimeout(()=>{if(miniWindow&&!miniWindow.isDestroyed())miniPreferences.save(miniWindow.getBounds(),miniWindow.isAlwaysOnTop()).catch(()=>{});},250);};
- miniWindow.on('resize',remember);miniWindow.on('move',remember);
+ miniWindow.on('resize',remember);let snapTimer;miniWindow.on('move',()=>{remember();clearTimeout(snapTimer);if(desktopQoL.snap)snapTimer=setTimeout(()=>{if(!miniWindow||miniWindow.isDestroyed())return;const b=miniWindow.getBounds(),area=screen.getDisplayMatching(b).workArea,next=snapBounds(b,area);if(next.x!==b.x||next.y!==b.y)miniWindow.setBounds(next);},180);});
  miniWindow.on('close',()=>{clearTimeout(timer);miniPreferences.save(miniWindow.getBounds(),miniWindow.isAlwaysOnTop()).catch(()=>{});});
  miniWindow.on('closed',()=>{miniWindow=null;if(!quitting&&window&&!window.isDestroyed()&&!window.isVisible())window.show();});
  miniWindow.loadURL('ntapp://studio/mini.html');
 }
-app.on('before-quit',()=>{quitting=true;studioUpdater?.stop();presence.close();spotify.cancelLogin().catch(()=>{});team.cancelLogin().catch(()=>{});});
+app.on('before-quit',()=>{desktopQoL.unregister();quitting=true;studioUpdater?.stop();presence.close();spotify.cancelLogin().catch(()=>{});team.cancelLogin().catch(()=>{});});
 
 function spotifyOwner(expected){
   try{const session=JSON.parse(team.getItem('neon-trinity-supabase-auth')||'null'),claims=JSON.parse(Buffer.from(session.access_token.split('.')[1],'base64url').toString());if(claims.iss!=='https://xyhkpwhfgjamssojjzbu.supabase.co/auth/v1'||!/^([a-f0-9]{8}-)([a-f0-9]{4}-){3}[a-f0-9]{12}$/i.test(claims.sub)||session.user?.id&&session.user.id!==claims.sub||expected!==claims.sub)throw new Error();return claims.sub;}catch{throw new Error('Bitte zuerst mit Discord im Studio anmelden.');}

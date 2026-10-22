@@ -1,3 +1,4 @@
+import {fuzzyMatch} from './qol-next.mjs';
 // Shared player rules for the Studio, miniplayer and mobile app.
 export const REPEAT_MODES=['off','context','track'];
 export const repeatMode=value=>REPEAT_MODES.includes(value)?value:value===true?'context':'off';
@@ -55,7 +56,7 @@ export function filterSongs(tracks,{search='',sort='added',direction='desc'}={})
 export function searchCatalog({tracks=[],albums=[],playlists=[],spotify=[]},term,source='all'){
  const query=String(term).trim().toLocaleLowerCase('de');if(!query)return [];
  const rows=[...tracks.map(t=>({...t,kind:'track',source:t.visibility==='local'?'local':'band'})),...albums.map(t=>({...t,kind:'album',source:'band'})),...playlists.map(t=>({...t,kind:'playlist',source:t.visibility==='local'?'local':'band'})),...spotify.map(t=>({...t,title:t.name||t.title,kind:t.kind||'spotify',source:'spotify'}))];
- return rows.filter(t=>(source==='all'||source===t.source)&&[t.title,t.artist,t.description].join(' ').toLocaleLowerCase('de').includes(query)).slice(0,250);
+ return rows.filter(t=>(source==='all'||source===t.source)&&fuzzyMatch({...t,voices:t.description},query)).slice(0,250);
 }
 export class SleepTimer{
  constructor(){this.cancel();}

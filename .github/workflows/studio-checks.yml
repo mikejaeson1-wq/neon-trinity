@@ -43,3 +43,20 @@ jobs:
       - name: Kompatibilitätsinformationen prüfen
         if: runner.os == 'Windows'
         run: node scripts/release-metadata.mjs
+
+  tv:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+      - name: Fire-OS-App bauen
+        run: |
+          yes | "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" "platforms;android-35" "build-tools;35.0.0"
+          python3 scripts/build-tv.py
+      - uses: actions/upload-artifact@v4
+        with:
+          name: neon-trinity-tv-build
+          path: |
+            release-tv/Neon-Trinity-TV-unsigned.apk
+            release-tv/apksigner.jar
+          retention-days: 7

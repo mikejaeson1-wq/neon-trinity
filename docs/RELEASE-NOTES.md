@@ -1,13 +1,14 @@
-# Neon Trinity Studio 1.1.1
+# Neon Trinity Studio 1.2.0
 
-Dieses Fehlerupdate behebt die scheinbar leere lokale Mediathek nach Version 1.1.0 und den wiederkehrenden Fehler „Illegal invocation“ beim Mithören.
+Das Gesamtupdate ergänzt gezieltes privates Songteilen und die 30 Punkte der neuen Komfort-Roadmap.
 
-- **Bisherige lokale Ablage:** Das Studio legt seinen Datenordner wieder vor dem ersten Speicherzugriff eindeutig auf „Neon Trinity Studio“ fest. Version 1.1.0 konnte durch die neue Miniplayer-Einstellung zu früh einen zweiten Profilordner öffnen. Dadurch waren die zuvor gespeicherten Songs, Playlists und Sitzungen dort nicht sichtbar.
-- **Vorhandene Daten erhalten:** Es werden keine Mediatheken gelöscht, verschoben oder zwischen Konten vermischt. Ein zusätzlich angelegter Ordner aus 1.1.0 bleibt erhalten. Neu darin importierte Songs erscheinen deshalb nicht automatisch in der ursprünglichen Ablage.
-- **Rückkehr zu älteren Versionen:** Die fehlerhafte Version 1.1.0 wird nicht mehr als sichere Wiederherstellung angeboten.
-- **Mithören:** Der Browser-Netzwerkaufruf ist korrekt gebunden; die wiederkehrende Meldung „Failed to execute fetch on Window: Illegal invocation“ wird behoben.
-- **Upgrade-Prüfung:** Zusätzlich zu den bisherigen Prüfungen wird auf Windows die tatsächliche Installerfolge 1.0.1 → 1.1.0 → 1.1.1 mit gespeicherten Band-Songs, privaten Songs zweier Konten und einer lokalen Playlist durchlaufen. Audiodaten und die zusätzliche Ablage werden auf Erhalt geprüft.
+- Private MP3s direkt im Studio an ausgewählte Bandmitglieder freigeben; persönlicher Eingang, Ablaufdatum, Widerruf, Downloadoption und getrenntes Feedback mit Zeitmarken.
+- Persönliche Song-Favoriten, Tags, intelligente Playlists, Playlist-Ordner und Kopien, M3U-Import/Export sowie Ziehen in Playlists und im Album-Editor.
+- ID3-Vorschau beim MP3-Import, Songinformationen, Cover für ausgewählte Songs, fehlertolerante Suche und anpassbare Mediathek-Spalten und Zeilengrößen.
+- A–B-Abschnittsschleife für MP3s, Auswahl unterstützter Audioausgaben, Pause beim Gerätetrennen und optionale globale Windows-Tastenkürzel.
+- Benannte Miniplayer-Vorlagen, Andocken, Spielemodus, Mediatheksprüfung und zusätzliche geprüfte Ordnersicherungen. Bestehende Songs bleiben in ihrer bisherigen Ablage.
+- TV-Webplayer mit Fernbedienung und QR-Anmeldung über das Handy. Gerätezugang erlaubt nur Musikhören; private Songs nur nach ausdrücklicher Freigabe. Spotify nutzt die offizielle TV-App. Fire OS und Vega haben unterschiedliche Installationswege; reale Fire-TV-Hardware wurde hier nicht geprüft.
 
-Das Studio vollständig schließen und das neue Setup über die vorhandene Installation installieren. Eine Deinstallation oder ein erneuter Import ist für diese Korrektur nicht erforderlich. Ohne Zugriff auf den jeweiligen Computer lässt sich nicht vorab bestätigen, welche Dateien dort noch vorhanden sind.
+Die vollständige Bedienübersicht mit allen 30 Punkten steht in docs/QOL-1.2.md. Die beiden additiven Supabase-Erweiterungen sind für das gemeinsame Projekt eingerichtet. Das lokale Datenformat bleibt Version 1; ein Update darf die bisherige Mediathek nicht ersetzen.
 
-Die Komfortfunktionen aus 1.1.0 bleiben enthalten: drei Repeat-Stufen, frei skalierbarer Miniplayer, gespeicherte Warteschlange, Such- und Mediatheksfunktionen, Sleep-Timer sowie die Handy-Verbesserungen. Die ausführliche Liste steht in docs/QOL-1.1.md. Das Datenformat bleibt unverändert; keine Supabase-Migration erforderlich.
+Zum Aktualisieren das Studio vollständig schließen und das Setup über die bestehende Installation installieren. Nicht vorher deinstallieren. Die Korrekturen aus 1.1.1 bleiben enthalten.

@@ -13,6 +13,7 @@ export function ownerSettings(state,owner){
  return s;
 }
 export function playbackPrivacy(state,owner,track){
+ if(track?.visibility==='shared')return {show:false,listen:false};
  const p=ownerSettings(state,owner).privacy,entry=track&&Object.hasOwn(p.tracks,track.id)?p.tracks[track.id]:{},local=track?.visibility==='local';
  return {show:!!track&&p.discord&&(!local||p.localDiscord)&&entry?.show!==false,listen:!!track&&(!local||p.localListen)&&entry?.listen!==false};
 }
