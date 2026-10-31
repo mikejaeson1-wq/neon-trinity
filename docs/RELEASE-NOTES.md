@@ -1,14 +1,13 @@
-# Neon Trinity Studio 1.2.0
+# Neon Trinity Studio 1.2.1
 
-Das Gesamtupdate ergänzt gezieltes privates Songteilen und die 30 Punkte der neuen Komfort-Roadmap.
+Songs und Alben bekommen per Rechtsklick einen öffentlichen Hörlink für Discord. Besucher öffnen eine HTML-Seite mit Cover und Player und hören ohne Studio und ohne Anmeldung.
 
-- Private MP3s direkt im Studio an ausgewählte Bandmitglieder freigeben; persönlicher Eingang, Ablaufdatum, Widerruf, Downloadoption und getrenntes Feedback mit Zeitmarken.
-- Persönliche Song-Favoriten, Tags, intelligente Playlists, Playlist-Ordner und Kopien, M3U-Import/Export sowie Ziehen in Playlists und im Album-Editor.
-- ID3-Vorschau beim MP3-Import, Songinformationen, Cover für ausgewählte Songs, fehlertolerante Suche und anpassbare Mediathek-Spalten und Zeilengrößen.
-- A–B-Abschnittsschleife für MP3s, Auswahl unterstützter Audioausgaben, Pause beim Gerätetrennen und optionale globale Windows-Tastenkürzel.
-- Benannte Miniplayer-Vorlagen, Andocken, Spielemodus, Mediatheksprüfung und zusätzliche geprüfte Ordnersicherungen. Bestehende Songs bleiben in ihrer bisherigen Ablage.
-- Signierte Fire-OS-App als zusätzlicher APK-Download und TV-Webplayer mit Fernbedienung und QR-Anmeldung über das Handy. Gerätezugang erlaubt nur Musikhören; private Songs nur nach ausdrücklicher Freigabe. Spotify nutzt die offizielle TV-App. Fire OS und Vega haben unterschiedliche Installationswege; reale Fire-TV-Hardware wurde hier nicht geprüft.
+- **Öffentlichen Hörlink kopieren:** bei einer Erstveröffentlichung ausdrücklich bestätigen, danach den bestehenden Link direkt in die Zwischenablage kopieren. Falls die Zwischenablage gesperrt ist, steht ein markierbares Linkfeld bereit.
+- **Einzelne Songs:** eine eigene Songseite veröffentlicht nur die ausgewählte Band-MP3 samt Cover und ausdrücklich bestätigten Songtexten/Credits. Songfreigaben bleiben von Albumfreigaben unabhängig, auch wenn andere Mitglieder noch eine ältere Studio-Version verwenden.
+- **Öffentliche Freigabe verwalten:** veröffentlichte Fassungen aktualisieren oder die jeweilige Freigabe zurückziehen. Der Link bleibt bei Updates gleich. Bereits geladene oder gespeicherte Audiodaten lassen sich nicht zurückholen; zuvor ausgegebene Medienlinks können bis zu fünf Minuten gültig bleiben.
+- **Alben:** der kopierte Link führt zuverlässig zum ausgewählten Album. Eine einzelne Albumveröffentlichung aktualisiert keine anderen Albumfassungen.
+- **Vorhandene Musik erhalten:** keine Änderung am lokalen Datenformat, Datenordner oder den vorhandenen Songs und Playlists. Private lokale MP3s bleiben privat; öffentliche Links benötigen eine ausdrücklich angelegte Bandkopie. Die private Freigabe direkt an eine Person bleibt bestehen.
 
-Die vollständige Bedienübersicht mit allen 30 Punkten steht in docs/QOL-1.2.md. Die beiden additiven Supabase-Erweiterungen sind für das gemeinsame Projekt eingerichtet. Das lokale Datenformat bleibt Version 1; ein Update darf die bisherige Mediathek nicht ersetzen.
+Bedienung: Band-Mediathek oder Alben → Rechtsklick → Öffentlichen Hörlink kopieren. Die ausführliche Anleitung steht in docs/PUBLIC-LINKS.md. HTML-Player und zusätzliche Songfreigaben ergänzen die bestehende Website; es werden keine bestehenden Alben oder Musikdateien gelöscht.
 
-Zum Aktualisieren das Studio vollständig schließen und das Setup über die bestehende Installation installieren. Nicht vorher deinstallieren. Die Korrekturen aus 1.1.1 bleiben enthalten.
+Zum Aktualisieren das Studio vollständig schließen und das Setup über die vorhandene Installation installieren. Nicht vorher deinstallieren.

@@ -36,6 +36,12 @@ export function makeHandler(createClient,env){
    const db=createClient(base,service,{auth:{persistSession:false,autoRefreshToken:false}});
    const url=new URL(req.url),path=url.pathname.split('/neon-public')[1]||'/',parts=path.split('/').filter(Boolean);
    if(path==='/health'&&req.method==='GET')return response({service:'neon-trinity-supabase',ready:true,privateListening:true});
+   if(parts[0]==='song'&&parts.length===2&&validId(parts[1])&&req.method==='GET'){
+    const release=check(await db.from('nt_song_releases').select('data,asset_paths').eq('id',parts[1]).maybeSingle());
+    if(!release)throw error('Dieser Song ist nicht öffentlich freigegeben oder die Freigabe wurde zurückgezogen.',404);
+    const signed=release.asset_paths.length?check(await db.storage.from('nt-media').createSignedUrls(release.asset_paths,300)):[];
+    return response({...release.data,urls:Object.fromEntries(signed.map(r=>[r.path,r.signedUrl]))});
+   }
    if(parts[0]==='album'&&parts.length===2&&validId(parts[1])&&req.method==='GET'){
     const release=check(await db.from('nt_releases').select('data,asset_paths').eq('id',parts[1]).maybeSingle());
     if(!release)throw error('Dieses Album ist nicht veröffentlicht.',404);

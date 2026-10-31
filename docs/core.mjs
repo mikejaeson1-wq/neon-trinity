@@ -66,6 +66,9 @@ export function albumLink(albumId, settings) {
   const base = safeBaseUrl(settings.baseUrl) || `https://${settings.owner}.github.io/${settings.repo}`;
   return `${base}/albums/${encodeURIComponent(albumId)}/`;
 }
+export function songLink(trackId, settings = {}) {
+  return `${safeBaseUrl(settings.publicBase)||CLOUD.publicBase}/song.html?id=${encodeURIComponent(trackId)}`;
+}
 export function removeTrack(state, trackId) {
   state.tracks = state.tracks.filter(t=>t.id!==trackId);
   for (const group of [...state.albums, ...state.playlists, ...(state.privatePlaylists||[])]) group.trackIds = group.trackIds.filter(x=>x!==trackId);

@@ -9,7 +9,7 @@ export class TeamClient {
   if(path==='/api/catalog')return method==='GET'?{catalog:(await this.backend.catalog()).data}:this.backend.save(data.operations);
   if(path==='/api/media'&&method==='POST')return this.backend.upload(blob.id,blob.data);
   if(path.startsWith('/api/media/'))return this.backend.download(decodeURIComponent(path.slice(11)),this.baseline||emptyCatalog());
-  if(path==='/api/publish')return this.backend.publish(data.albumIds,data.theme);
+  if(path==='/api/publish')return this.backend.publish(data.albumIds,data.theme,data.targetId);
   if(path==='/api/pages')return {status:'Supabase verbunden',url:this.info.publicBase+'/album.html'};
   if(path.startsWith('/api/listen'))return this.backend.publicRequest(path.slice(4),method,data?{...data,publicBase:this.info.publicBase}:undefined);
   throw new Error('Unbekannte Supabase-Anfrage.');

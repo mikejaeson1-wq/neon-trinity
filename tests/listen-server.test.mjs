@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import {makeHandler,localInput,playerInput,safePublicBase} from '../supabase/functions/neon-public/handler.mjs';
 const dex='b791f08f-56b3-4620-a121-0ad8faf110b3',nix='22222222-2222-4222-8222-222222222222',assetId='11111111-1111-4111-8111-111111111111',roomId='a'.repeat(64);
 function fixture(){
- const now=Date.now(),tables={nt_room_settings:[],nt_listen_preferences:[],nt_room_grants:[],nt_room_guests:[],nt_room_requests:[],nt_rooms:[],nt_listen_assets:[],nt_catalog:[{id:1,data:{tracks:[{id:'band',blobId:'band-blob',title:'Band Song',artist:'Neon Trinity',duration:200}],assets:[{id:'band-blob',provider:'supabase',path:'media/band.mp3'}]}}],nt_config:[{id:1,public_base:'https://band.example'}],nt_releases:[]},objects=new Map(),signed=[];
+ const now=Date.now(),tables={nt_room_settings:[],nt_listen_preferences:[],nt_room_grants:[],nt_room_guests:[],nt_room_requests:[],nt_rooms:[],nt_listen_assets:[],nt_catalog:[{id:1,data:{tracks:[{id:'band',blobId:'band-blob',title:'Band Song',artist:'Neon Trinity',duration:200}],assets:[{id:'band-blob',provider:'supabase',path:'media/band.mp3'}]}}],nt_config:[{id:1,public_base:'https://band.example'}],nt_releases:[],nt_song_releases:[]},objects=new Map(),signed=[];
  const asset={id:assetId,owner_id:dex,track_id:'local-one',title:'Private MP3',artist:'Dex',duration:180,byte_size:9,path:dex+'/'+assetId+'.mp3',expires_at:new Date(now+900000).toISOString(),lyrics:'never exposed',cover:'never exposed'};
  const room={id:roomId,host_id:dex,host_alias:'Dex',track_id:'local-one',local_asset_id:assetId,position:40,playing:true,updated_at:new Date(now).toISOString(),expires_at:new Date(now+90000).toISOString()};
  tables.nt_listen_assets.push(asset);tables.nt_rooms.push(room);objects.set('nt-listen/'+asset.path,{name:assetId+'.mp3',metadata:{size:9,mimetype:'audio/mpeg'}});
@@ -31,7 +31,7 @@ function fixture(){
   };
   return {from,auth:{getUser:async()=>({data:{user:actor==='expired'?null:{id:actor}},error:null})},rpc:async()=>({data:{id:actor,alias:actor===dex?'Dex':'Nix',discordId:actor===dex?'229262929491394560':actor===nix?'402230022141902848':'000000000000000001',allowed:[dex,nix].includes(actor)},error:null}),storage:{from:bucket=>({
    createSignedUrl:async(path,ttl)=>{signed.push({bucket,path,ttl});return {data:{signedUrl:'https://media.example/'+bucket+'/'+path+'?signed=true'},error:null};},
-   createSignedUrls:async()=>({data:[],error:null}),
+   createSignedUrls:async(paths,ttl)=>{for(const path of paths)signed.push({bucket,path,ttl});return {data:paths.map(path=>({path,signedUrl:'https://media.example/'+bucket+'/'+path+'?signed=true'})),error:null};},
    list:async prefix=>({data:[...objects.entries()].filter(([k])=>k.startsWith(bucket+'/'+prefix+'/')).map(([,v])=>v),error:null}),
    remove:async paths=>{for(const path of paths)objects.delete(bucket+'/'+path);return {data:[],error:null};}
   })}};
@@ -103,4 +103,11 @@ test('Discord-Einladungen erlauben nur das eingeladene verifizierte Konto und ge
  const f=fixture();assert.equal((await f.request('/listen-preferences','PATCH',{mode:'invite',invitedDiscordIds:['402230022141902848'],roomId},dex)).status,200);assert.equal((await f.request('/listen/'+roomId)).status,403);
  assert.equal((await f.request('/listen/'+roomId+'/access','POST',{})).status,401);assert.equal((await f.request('/listen/'+roomId+'/access','POST',{},'outsider')).status,403);
  const grant=await f.request('/listen/'+roomId+'/access','POST',{},nix);assert.equal(grant.status,200);assert.equal((await f.request('/listen/'+roomId,'GET',null,{'x-listen-ticket':grant.data.accessToken})).status,200);assert.equal((await f.request('/listen/'+roomId+'/status','GET',null,nix)).status,403);assert.equal((await f.request('/listen/'+roomId,'GET',null,dex)).status,200);
+});
+
+test('Öffentlicher Song-Endpunkt signiert ohne Anmeldung ausschließlich die explizite Songfreigabe',async()=>{
+ const f=fixture();assert.equal((await f.request('/song/band')).status,404);assert.equal(f.signed.length,0);
+ f.tables.nt_song_releases.push({id:'band',data:{track:{id:'band',title:'Band Song'},assets:[{id:'band-blob',path:'media/band.mp3'}],work:null,theme:'trinity'},asset_paths:['media/band.mp3']});
+ const result=await f.request('/song/band');assert.equal(result.status,200);assert.equal(result.data.track.id,'band');assert.deepEqual(f.signed,[{bucket:'nt-media',path:'media/band.mp3',ttl:300}]);assert.equal(result.data.tracks,undefined);assert.ok(!JSON.stringify(result.data).includes('Private MP3'));
+ f.tables.nt_song_releases=[];assert.equal((await f.request('/song/band')).status,404);
 });

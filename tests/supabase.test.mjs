@@ -10,12 +10,12 @@ globalThis.document={querySelector:()=>null};globalThis.window={};
 test('Ein deaktivierter Discord-Anbieter wird vor dem Desktop-Login verständlich gemeldet',async()=>{let started=false;const oldWindow=globalThis.window;globalThis.window={neonDesktop:{cloudStartLogin:async()=>{started=true;}}};const team=new TeamClient({backend:{info:{},discordAvailable:async()=>false},getState:()=>newState(),setState:()=>{},getBlob:async()=>null,putBlob:async()=>{}});try{await assert.rejects(team.login(),/Discord ist in Supabase noch nicht aktiviert/);assert.equal(started,false);}finally{globalThis.window=oldWindow;}});
 const clone=structuredClone;
 function fixture(){
- const server={work:[{record_kind:'track',record_id:'public',lyrics:'[00:01]Band lyric',credits:'Dex',notes:'secret mix note'},{record_kind:'track',record_id:'draft',lyrics:'secret draft lyric',credits:'Nix'}],data:emptyCatalog(),revision:0,media:new Map(),releases:new Map(),privatePlaylists:new Map(),casMisses:0};
+ const server={work:[{record_kind:'track',record_id:'public',lyrics:'[00:01]Band lyric',credits:'Dex',notes:'secret mix note'},{record_kind:'track',record_id:'draft',lyrics:'secret draft lyric',credits:'Nix'}],data:emptyCatalog(),revision:0,media:new Map(),releases:new Map(),songReleases:new Map(),privatePlaylists:new Map(),casMisses:0};
  const response=data=>new Response(JSON.stringify(data),{status:200,headers:{'Content-Type':'application/json'}});
  async function fetcher(input,init={}){
   const url=new URL(String(input)),method=init.method||'GET',actor=new Headers(init.headers).get('X-Test-Actor');
   if(url.pathname.endsWith('/rpc/nt_identity'))return response({id:actor,alias:actor,allowed:true});
-  if(url.pathname.endsWith('/nt_workbench'))return response(server.work);
+  if(url.pathname.endsWith('/nt_workbench'))return response(url.searchParams.has('record_id')?server.work.find(w=>w.record_id===url.searchParams.get('record_id').slice(3))||null:server.work);
   if(url.pathname.endsWith('/nt_config'))return response({discord_client_id:'123456789012345678',public_base:'https://band.example'});
   if(url.pathname.endsWith('/nt_catalog')){
    if(method==='GET')return response({data:clone(server.data),revision:server.revision});
@@ -33,6 +33,12 @@ function fixture(){
    if(!row||url.searchParams.get('revision')!=='eq.'+row.revision)return response(null);
    if(method==='PATCH'){const next={...row,...JSON.parse(init.body)};server.privatePlaylists.set(key,clone(next));return response(next);}
    if(method==='DELETE'){server.privatePlaylists.delete(key);return response({id});}
+  }
+  if(url.pathname.endsWith('/nt_song_releases')){
+   const id=url.searchParams.get('id')?.slice(3);
+   if(method==='GET')return response(server.songReleases.get(id)||null);
+   if(method==='POST'){const row=JSON.parse(init.body);server.songReleases.set(row.id,clone(row));return response(null);}
+   if(method==='DELETE'){server.songReleases.delete(id);return response(null);}
   }
   if(url.pathname.endsWith('/nt_releases')){
    if(method==='GET')return response([...server.releases.values()].map(r=>({id:r.id})));
@@ -93,4 +99,25 @@ test('Echte Supabase-Clients speichern persönliche Playlists getrennt pro Konto
   await dex.team.pullPrivate();assert.equal(dex.state.privatePlaylists[0].title,'From second device');
   await dex.team.deletePrivate(dex.state.privatePlaylists[0]);assert.equal(f.server.privatePlaylists.size,0);
  }finally{dex.close();second.close();nix.close();jax.close();}
+});
+
+
+test('Einzelne HTML-Songfreigaben enthalten nur den ausgewählten Band-Song und bleiben von Albumfreigaben unabhängig',async()=>{
+ const f=fixture(),dex=f.client('Dex');try{await dex.ready();
+ dex.cache.set('blob-public',new Blob(['MP3'],{type:'audio/mpeg'}));dex.cache.set('blob-draft',new Blob(['PRIVATE'],{type:'audio/mpeg'}));
+ dex.state.tracks.push({id:'public',blobId:'blob-public',title:'Release',artist:'Band',duration:123,size:3,privateNote:'never public'},{id:'draft',blobId:'blob-draft',title:'Draft',artist:'Band',duration:80,size:7});
+ dex.state.albums.push({id:'album',title:'Release',description:'',trackIds:['public'],year:2026});await dex.team.push(clone(dex.state));
+ const original=clone(f.server.data),result=await dex.backend.publishSong('public','trinity','Dex');assert.match(result.url,/song.html\?id=public$/);
+ const row=f.server.songReleases.get('public');assert.equal(row.data.track.title,'Release');assert.equal(row.data.assets.length,1);assert.deepEqual(row.asset_paths,['media/blob-public.mp3']);
+ assert.ok(!JSON.stringify(row).includes('never public'));assert.ok(!JSON.stringify(row).includes('secret mix note'));assert.ok(!JSON.stringify(row).includes('blob-draft'));assert.equal(row.data.work.lyrics,'[00:01]Band lyric');
+ await dex.backend.publish(['album'],'trinity');await dex.backend.publish([],'trinity');assert.equal(f.server.songReleases.size,1);
+ await assert.rejects(dex.backend.publishSong('local-private','trinity','Dex'),/nicht in der Bandmediathek/);await assert.rejects(dex.backend.publishSong('public','trinity','Nix'),/Bandkonto/);
+ await dex.backend.withdrawPublicSong('public');assert.equal(f.server.songReleases.size,0);assert.equal(f.server.media.size,2);assert.deepEqual(f.server.data.tracks,original.tracks);
+ }finally{dex.close();}
+});
+
+test('Einzelnes Album veröffentlichen erhält die bisherigen Fassungen anderer Alben',async()=>{
+ const f=fixture(),dex=f.client('Dex');try{await dex.ready();dex.cache.set('mp3',new Blob(['MP3'],{type:'audio/mpeg'}));dex.state.tracks.push({id:'song',blobId:'mp3',title:'Song',artist:'Band',duration:40,size:3});dex.state.albums.push({id:'first',title:'First',trackIds:['song']},{id:'second',title:'Second',trackIds:['song']});await dex.team.push(clone(dex.state));await dex.backend.publish(['first'],'trinity');const original=clone(f.server.releases.get('first'));
+ dex.state.albums[0].title='Unpublished new title';await dex.team.push(clone(dex.state));await dex.backend.publish(['first','second'],'trinity','second');assert.deepEqual(f.server.releases.get('first'),original);assert.equal(f.server.releases.get('second').data.album.title,'Second');
+ }finally{dex.close();}
 });

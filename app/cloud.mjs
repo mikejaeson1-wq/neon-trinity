@@ -1,6 +1,6 @@
 import {ListeningAPI} from './listen-access.mjs';
 import {createClient} from './vendor/supabase.mjs';
-import {THEMES} from './core.mjs';
+import {THEMES,songLink} from './core.mjs';
 import {CLOUD} from './cloud-config.mjs';
 import {applyOperations,validId} from './shared.mjs';
 import {privateRecord} from './private-playlists.mjs';
@@ -55,10 +55,10 @@ export class SupabaseBackend{
   return {id,path,type:blob.type,size:blob.size,sha,provider:'supabase'};
  }
  async download(id,catalog){const asset=catalog.assets.find(a=>a.id===id&&a.provider==='supabase');if(!asset)throw new Error('Die Datei ist noch nicht in der gemeinsamen Mediathek gespeichert.');return check(await this.client.storage.from(CLOUD.bucket).download(asset.path));}
- async publish(albumIds,theme){
+ async publish(albumIds,theme,targetId=null){
   if(!Array.isArray(albumIds)||albumIds.some(x=>!validId(x)))throw new Error('Ungültige Albumauswahl.');
   const catalog=(await this.catalog()).data,rows=[],work=check(await this.client.from('nt_workbench').select('record_kind,record_id,lyrics,credits').eq('record_kind','track'));
-  for(const id of [...new Set(albumIds)]){
+  for(const id of [...new Set(albumIds)].filter(id=>!targetId||id===targetId)){
    const album=catalog.albums.find(a=>a.id===id);if(!album)throw new Error('Ein Album wurde inzwischen entfernt. Bitte erneut abgleichen.');
    const tracks=album.trackIds.map(id=>catalog.tracks.find(t=>t.id===id)).filter(Boolean);
    if(!tracks.length)throw new Error('Ein Album ohne Songs kann nicht veröffentlicht werden.');
@@ -74,6 +74,27 @@ export class SupabaseBackend{
   const operations=[...publications.map(value=>({kind:'publications',id:value.id,value,baseRev:current.publications.find(p=>p.id===value.id)?._rev||null})),...current.publications.filter(p=>!albumIds.includes(p.id)).map(p=>({kind:'publications',id:p.id,value:null,baseRev:p._rev}))];
   const saved=operations.length?await this.save(operations):{catalog:current};
   return {...saved,status:'in Supabase veröffentlicht',url:`${this.info.publicBase}/album.html${albumIds.length?'?id='+encodeURIComponent(albumIds[0]):''}`};
+ }
+ async publicSong(id){
+  if(!validId(id))throw new Error('Ungültiger Song.');
+  return check(await this.client.from('nt_song_releases').select('id,updated_at').eq('id',id).maybeSingle());
+ }
+ async publishSong(id,theme,owner=this.actor?.id){
+  if(!validId(id)||!owner||this.actor?.id!==owner)throw new Error('Bitte zuerst mit deinem Bandkonto anmelden.');
+  const catalog=(await this.catalog()).data,source=catalog.tracks.find(t=>t.id===id);
+  if(!source)throw new Error('Dieser Song ist nicht in der Bandmediathek. Private Songs werden nicht automatisch veröffentlicht.');
+  const track=Object.fromEntries(['id','title','artist','voices','duration','blobId','coverBlobId'].filter(key=>source[key]!==undefined).map(key=>[key,source[key]]));
+  const ids=[...new Set([track.blobId,track.coverBlobId].filter(Boolean))],assets=ids.map(id=>catalog.assets.find(a=>a.id===id&&a.provider==='supabase'));
+  if(assets.some(a=>!a))throw new Error('Die Songdatei oder das Cover fehlt. Bitte die Mediathek zuerst synchronisieren.');
+  const work=check(await this.client.from('nt_workbench').select('lyrics,credits').eq('record_kind','track').eq('record_id',id).maybeSingle());
+  if(this.actor?.id!==owner)throw new Error('Das Konto wurde gewechselt. Bitte die Freigabe erneut öffnen.');
+  const row={id,data:{track,assets,work:work?{lyrics:work.lyrics||'',credits:work.credits||''}:null,theme:THEMES[theme]?theme:'trinity'},asset_paths:assets.map(a=>a.path),updated_at:new Date().toISOString()};
+  check(await this.client.from('nt_song_releases').upsert(row));
+  return {url:songLink(id,{publicBase:this.info.publicBase})};
+ }
+ async withdrawPublicSong(id){
+  if(!validId(id)||!this.actor?.id)throw new Error('Bitte zuerst mit deinem Bandkonto anmelden.');
+  check(await this.client.from('nt_song_releases').delete().eq('id',id));
  }
  async setConfig(values){if(this.actor?.alias!=='Dex')throw new Error('Diese Team-Einstellung verwaltet Dex.');check(await this.client.from('nt_config').update(values).eq('id',1).select().single());return this.status();}
  async publicRequest(path,method='GET',data){return this.listeningAPI.request(path,method,data);}
