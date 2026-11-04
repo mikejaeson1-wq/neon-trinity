@@ -11,3 +11,10 @@ test('Rechtsklick bietet getrennte HTML-Hörlinks für Discord und bestehende MP
  open('song');assert.match(document.querySelector('#copy-public-link').textContent,/HTML-Seite für Discord/);document.querySelector('#copy-public-link').onclick();assert.deepEqual(copied,[['track','song']]);
  open('album');document.querySelector('#manage-public-link').onclick();assert.deepEqual(managed,[['album','album']]);assert.ok(document.querySelector('#copy-musicbox'));cleanup();
 });
+
+test('Stimmen bearbeiten ist für eigene Songs erreichbar und für empfangene Freigaben ausgeblendet',()=>{
+ const {document,window}=parseHTML('<html><body><div data-musicbox-kind="track" data-musicbox-id="own">Eigener Song</div><div data-musicbox-kind="track" data-musicbox-id="shared">Empfangen</div></body></html>'),edited=[];
+ const cleanup=installMusicboxMenu({document,resolve:(kind,id)=>({kind,id,title:id,available:false,canEditVoices:id==='own'}),onCopy:()=>{},onRemove:()=>{},onVoices:id=>edited.push(id)});
+ const open=id=>document.querySelector('[data-musicbox-id="'+id+'"]').dispatchEvent(new window.Event('contextmenu',{bubbles:true,cancelable:true}));
+ open('own');document.querySelector('#edit-song-voices').onclick();assert.deepEqual(edited,['own']);open('shared');assert.equal(document.querySelector('#edit-song-voices'),null);cleanup();
+});

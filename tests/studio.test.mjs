@@ -49,6 +49,15 @@ test('Studio bedient Import, Playlist, Album, Auftritt und Theme über echte For
   assert.match(document.querySelector('main').textContent,/Supabase/);
 });
 
+test('Stimmen lassen sich direkt in der Songliste auswählen, speichern und erneut bearbeiten; Abbrechen erhält die bisherigen Angaben',async()=>{
+ const original=(await loadState()).tracks[0];navigate('library');click('[data-action="edit-voices"][data-id="'+original.id+'"]');
+ let form=document.querySelector('#track-form');assert.equal(form.querySelector('[data-song-voice="Dex"]').checked,true);assert.equal(form.querySelector('[data-song-voice="Nix"]').checked,true);
+ const jax=form.querySelector('[data-song-voice="Jax"]');jax.checked=false;jax.onchange();assert.equal(form.querySelector('[name=voices]').value,'Dex · Nix');
+ await form.onsubmit({preventDefault(){},target:form});let saved=(await loadState()).tracks[0];assert.equal(saved.voices,'Dex · Nix');assert.equal(saved.blobId,original.blobId);assert.equal(saved.digest,original.digest);assert.equal(saved.title,original.title);assert.match(document.querySelector('[data-action="edit-voices"]').textContent,/Dex · Nix/);
+ click('[data-action="edit-track"][data-id="'+original.id+'"]');form=document.querySelector('#track-form');assert.equal(form.querySelector('[data-song-voice="Jax"]').checked,false);form.querySelector('[data-voice-preset="instrumental"]').onclick();assert.equal(form.querySelector('[name=voices]').value,'Instrumental');dialog.close();assert.equal((await loadState()).tracks[0].voices,'Dex · Nix');
+ click('[data-action="edit-voices"][data-id="'+original.id+'"]');form=document.querySelector('#track-form');const input=form.querySelector('[name=voices]');input.value='Nix & Jax · Gaststimme';input.oninput();const dex=form.querySelector('[data-song-voice="Dex"]');dex.checked=true;dex.onchange();assert.equal(input.value,'Dex · Nix · Jax · Gaststimme');await form.onsubmit({preventDefault(){},target:form});saved=(await loadState()).tracks[0];assert.equal(saved.voices,'Dex · Nix · Jax · Gaststimme');assert.equal(saved.blobId,original.blobId);
+});
+
 test('Studio 1.0 bietet Werkzeuge an und behält gelöschte MP3s für die gezielte Wiederherstellung',async()=>{
  navigate('studio/history');assert.match(document.querySelector('main').textContent,/Rückgängig & Papierkorb/);assert.ok(document.querySelector('[data-plus="history-restore"]'));
  const state=await loadState(),track=state.tracks[0];navigate('library');click('[data-action="edit-track"][data-id="'+track.id+'"]');document.querySelector('#delete-track').onclick();await document.querySelector('#confirm-action').onclick({currentTarget:document.querySelector('#confirm-action')});await waitFor(()=>!document.querySelector('#modal').open);
