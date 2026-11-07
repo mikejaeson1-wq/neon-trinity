@@ -1,4 +1,4 @@
-# Neon Trinity Studio 1.2.3
+# Neon Trinity Studio 1.2.4
 
 Songs und Cover lassen sich direkt über das eigene Discord-Konto auf Sleepygram teilen.
 
@@ -6,6 +6,7 @@ Songs und Cover lassen sich direkt über das eigene Discord-Konto auf Sleepygram
 - Song, Cover oder eigene Bilddatei auswählen, Beitragstext ergänzen und vor dem Posten prüfen.
 - Direkt posten oder als persönlichen Entwurf in Sleepygram weiterbearbeiten.
 - Noch kein Sleepygram-Profil? Anzeigename und Handle können im Teilen-Dialog angelegt werden.
+- Vor jedem Teilen wird die Discord-Sitzung zusätzlich mit dem aktiven Studio-Konto abgeglichen, bevor Dateien gesendet werden.
 - Empfangene private Freigaben werden nicht zur Weiterveröffentlichung angeboten. Ein Kontowechsel während des Teilens bricht den Vorgang ab.
 
 Das Studio-Datenformat bleibt unverändert. Bestehende lokale Songs, Playlists, Bilder und Backups werden weiterverwendet; das Teilen kopiert nur die ausgewählte Datei zu Sleepygram.

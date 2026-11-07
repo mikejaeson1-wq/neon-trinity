@@ -1,5 +1,6 @@
 import {test} from 'node:test';
 import assert from 'node:assert/strict';
+const sessionToken=id=>'e30.'+Buffer.from(JSON.stringify({sub:id})).toString('base64url')+'.test';
 import {SleepygramAPI} from '../app/sleepygram-share.mjs';
 import {canShareToSleepygram,sleepygramChoices} from '../app/sleepygram-source.mjs';
 test('Sleepygram shares own local/band media and refuses received private songs or other accounts',async()=>{
@@ -13,14 +14,16 @@ test('Sleepygram shares own local/band media and refuses received private songs 
 });
 test('Relay calls carry only the current session, reject missing identity and detect account changes',async()=>{
  let person={id:'dex',alias:'Dex'},calls=0,swap=false;
- const api=new SleepygramAPI({getIdentity:()=>person,getToken:async()=>'discord-session',fetcher:async(url,options)=>{calls++;assert.equal(options.headers.Authorization,'Bearer discord-session');assert.match(url,/\/api\/sleepygram\/studio-session$/);if(swap)person={id:'nix',alias:'Nix'};return Response.json({me:{id:'profile-dex'}});}});
+ const api=new SleepygramAPI({getIdentity:()=>person,getToken:async()=>sessionToken('dex'),fetcher:async(url,options)=>{calls++;assert.equal(options.headers.Authorization,'Bearer '+sessionToken('dex'));assert.match(url,/\/api\/sleepygram\/studio-session$/);if(swap)person={id:'nix',alias:'Nix'};return Response.json({me:{id:'profile-dex'}});}});
  assert.equal((await api.session('dex')).me.id,'profile-dex');assert.equal(calls,1);
  await assert.rejects(api.session('nix'),/gewechselt/);assert.equal(calls,1);
  swap=true;await assert.rejects(api.session('dex'),/gewechselt/);assert.equal(calls,2);
  person=null;await assert.rejects(api.session('dex'),/anmelden/);assert.equal(calls,2);
 });
 test('Sharing validates media limits before uploading any bytes',async()=>{
- let calls=0;const api=new SleepygramAPI({getIdentity:()=>({id:'dex'}),getToken:async()=>'token',fetcher:async()=>{calls++;return Response.json({});}});
+ let calls=0;const api=new SleepygramAPI({getIdentity:()=>({id:'dex'}),getToken:async()=>sessionToken('dex'),fetcher:async()=>{calls++;return Response.json({});}});
  await assert.rejects(api.upload(new File(['x'],'script.svg',{type:'application/javascript'}),'dex'),/Bild oder einen Song/);
  await assert.rejects(api.upload(new File([],'empty.mp3',{type:'audio/mpeg'}),'dex'),/maximal/);assert.equal(calls,0);
 });
+
+test('A valid session from another account is rejected before any file or request is sent',async()=>{let calls=0;const api=new SleepygramAPI({getIdentity:()=>({id:'dex',alias:'Dex'}),getToken:async()=>sessionToken('nix'),fetcher:async()=>{calls++;return Response.json({});}});await assert.rejects(api.session('dex'),/stimmen nicht überein/);await assert.rejects(api.upload(new File(['private song'],'private.mp3',{type:'audio/mpeg'}),'dex'),/stimmen nicht überein/);assert.equal(calls,0);});

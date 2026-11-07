@@ -1,12 +1,13 @@
 const RELAY='https://neon-trinity-music.mikebamlee.chatgpt.site/api/sleepygram/';
 const APP='https://sleepygram.mikebamlee.chatgpt.site';
+const sessionAccount=token=>{try{const payload=token.split('.')[1].replace(/-/g,'+').replace(/_/g,'/');const claims=JSON.parse(atob(payload));return typeof claims.sub==='string'?claims.sub:'';}catch{return '';}};
 const h=value=>String(value??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 export class SleepygramAPI{
  constructor({getToken,getIdentity,fetcher=globalThis.fetch,source='studio'}){Object.assign(this,{getToken,getIdentity,fetcher,source});}
  async identity(){const person=await this.getIdentity();if(!person?.id)throw new Error('Bitte zuerst mit deinem Discord-Konto anmelden.');return person;}
  async request(path,{body,owner,method='POST'}={}){
   const person=await this.identity();if(owner&&person.id!==owner)throw new Error('Das Discord-Konto wurde gewechselt. Bitte das Teilen erneut öffnen.');
-  const token=await this.getToken();if(!token)throw new Error('Bitte erneut mit Discord anmelden.');
+  const token=await this.getToken();if(!token)throw new Error('Bitte erneut mit Discord anmelden.');if(sessionAccount(token)!==person.id)throw new Error('Deine Discord-Sitzung und dein Studio-Konto stimmen nicht überein. Bitte erneut anmelden.');
   if((await this.identity()).id!==person.id)throw new Error('Das Konto wurde gewechselt.');
   const headers={Authorization:'Bearer '+token};if(body!==undefined&&!(body instanceof FormData))headers['Content-Type']='application/json';
   const response=await this.fetcher(RELAY+path,{method,headers,body:body===undefined?undefined:body instanceof FormData?body:JSON.stringify(body),signal:AbortSignal.timeout(path==='upload'?120000:25000)});
