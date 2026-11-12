@@ -81,3 +81,7 @@ Die Windows-App zeigt auch den laufenden eigenen lokalen Song als Hört-Aktivit�
 Discord muss die globale Aktivitätsfreigabe erlauben. Einzelne Spiele können separat ausgeblendet werden; der Hörtyp hebt die globale Freigabe nicht auf. Der bestätigte RPC-Typ ist in der Verbindungsprüfung sichtbar, die tatsächliche Sichtbarkeit bei anderen kann das Studio nicht feststellen.
 
 Backend: zuerst supabase/listen-private.sql anwenden, danach neon-public mit index.ts und handler.mjs bereitstellen. Der private Bucket nt-listen erlaubt Uploads nur zum eigenen reservierten Pfad. Gäste erhalten ausschließlich für den aktuellen Song einer gültigen Hörsession kurzlebige Dateilinks. Reservierungen ohne aktive Session verfallen; beim nächsten Session-Start werden abgelaufene Reste bereinigt.
+
+## Musikbox-Zwischenablage in 1.2.5
+
+Der Ergebnisdialog nutzt für Windows eine reine Schreiboperation über die bestehende vertrauensgebundene IPC-Brücke. Sie liest keine Zwischenablage aus und ändert keine Browserberechtigungen. Chromium-/Browser-Zugriffe und ein Dialog-interner Legacy-Kopierweg bleiben Fallbacks. Das URL-Feld erhält Fokus und vollständige Auswahl; Strg+C verwendet bei vorhandener Desktop-Brücke denselben Schreibweg. Erfolgsstatus erscheinen erst nach abgeschlossenem Schreiben. Die Änderung betrifft weder gespeicherte Songs noch vorhandene Musikbox-Exporte.

@@ -18,6 +18,20 @@ try{const target=await until(async()=>{const pages=await(await fetch('http://127
  await evaluate("for(const input of document.querySelectorAll('[data-song-voice]')){input.checked=input.dataset.songVoice!=='Jax';input.dispatchEvent(new Event('change',{bubbles:true}));}document.querySelector('#track-form').requestSubmit()");await until(()=>evaluate("!document.querySelector('#modal').open"),'Stimmen gespeichert');
  const voiceSaved=await evaluate("(async()=>{const db=await import('./db.mjs'),state=await db.loadState();return {voices:state.tracks[0].voices,original:!!(await db.getBlob('upgrade-dex-mp3')),tracks:state.tracks.length,locals:state.localTracks.length};})()");assert.deepEqual(voiceSaved,{voices:'Dex · Nix · Test',original:true,tracks:1,locals:2});
  await evaluate("location.hash='comfort/display'");await until(()=>evaluate("!!document.querySelector('[data-next=\"reset-display\"]')"),'Zurücksetzen');await evaluate("document.querySelector('[data-next=\"reset-display\"]').click();document.querySelector('[data-next=\"reset-confirm\"]').click()");await until(()=>evaluate("document.documentElement.dataset.game==='false'&&document.documentElement.dataset.density==='normal'"),'Gezieltes Zurücksetzen');
- await mkdir('release-tv',{recursive:true});const shot=await send('Page.captureScreenshot',{format:'png'});await writeFile('release-tv/native-qol.png',Buffer.from(shot.data,'base64'));
- console.log('Installierte App: neue Ansichten, Zeilengröße, Spielemodus, Favoriten, Mehrfach-Cover, Stimmenauswahl und Zurücksetzen bedient; ursprüngliche private MP3s und Playlists vollständig erhalten.');
+ // Use a fixture URL only: no music upload or user account is needed to exercise
+ // the installed renderer, preload, trusted IPC handler and Windows clipboard.
+ const musicboxURL='https://example.invalid/neon-trinity/clipboard-test.mp3',run=promisify(execFile);
+ const readClipboard=async()=>String((await run('powershell.exe',['-NoProfile','-NonInteractive','-Command','Get-Clipboard -Raw'])).stdout).trimEnd();
+ const resetClipboard=()=>run('powershell.exe',['-NoProfile','-NonInteractive','-Command',"Set-Clipboard -Value 'neon-clipboard-test-marker'"]);
+ await resetClipboard();
+ await evaluate(`(async()=>{const {showMusicboxResult}=await import('./musicbox-result.mjs');const modal=document.querySelector('#modal');modal.showModal();await showMusicboxResult({document,result:{url:${JSON.stringify(musicboxURL)},title:'Zwischenablage-Test',trackCount:1},closeModal:()=>modal.close()});})()`);
+ assert.equal(await readClipboard(),musicboxURL,'The completed dialog copies using the installed native bridge');
+ assert.equal(await evaluate("document.activeElement===document.querySelector('#musicbox-url')&&document.activeElement.selectionStart===0&&document.activeElement.selectionEnd===document.activeElement.value.length"),true,'The URL is focused and fully selected');
+ await resetClipboard();await evaluate("document.querySelector('#musicbox-copy').click()");await until(async()=>await readClipboard()===musicboxURL,'Musikbox-Kopierschaltfläche');
+ await resetClipboard();await evaluate("const input=document.querySelector('#musicbox-url');input.focus();input.select()");
+ await send('Input.dispatchKeyEvent',{type:'keyDown',key:'c',code:'KeyC',windowsVirtualKeyCode:67,modifiers:2});await send('Input.dispatchKeyEvent',{type:'keyUp',key:'c',code:'KeyC',windowsVirtualKeyCode:67,modifiers:2});await until(async()=>await readClipboard()===musicboxURL,'Musikbox Strg+C');
+ assert.match(await evaluate("document.querySelector('#musicbox-copy-status').textContent"),/kopiert/);
+ await mkdir('release-tv',{recursive:true});const copyShot=await send('Page.captureScreenshot',{format:'png'});await writeFile('release-tv/native-clipboard.png',Buffer.from(copyShot.data,'base64'));await evaluate("document.querySelector('#musicbox-done').click()");
+ const shot=await send('Page.captureScreenshot',{format:'png'});await writeFile('release-tv/native-qol.png',Buffer.from(shot.data,'base64'));
+ console.log('Installierte App: neue Ansichten, Zeilengröße, Spielemodus, Favoriten, Mehrfach-Cover, Stimmenauswahl, Zurücksetzen und Musikbox-Kopieren (automatisch, Schaltfläche, Strg+C) bedient; ursprüngliche private MP3s und Playlists vollständig erhalten.');
 }finally{ws?.close();try{await promisify(execFile)('taskkill',['/PID',String(app.pid),'/T','/F']);}catch{}await delay(300);}

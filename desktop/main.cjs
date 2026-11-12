@@ -1,4 +1,5 @@
-const { app, BrowserWindow, ipcMain, protocol, net, shell, safeStorage, Menu, screen, dialog, globalShortcut } = require('electron');
+const { app, BrowserWindow, ipcMain, protocol, net, shell, safeStorage, Menu, screen, dialog, globalShortcut, clipboard } = require('electron');
+const {writeClipboardText}=require('./clipboard.cjs');
 const {configureStudioProfile}=require('./profile.cjs');
 configureStudioProfile(app);
 const path = require('node:path');
@@ -61,6 +62,7 @@ if(primaryInstance)app.whenReady().then(async()=>{
     catch(error){return {ok:false,message:error.message,status:error.status||0};}
   });
   const handle=(name,fn)=>ipcMain.handle(name,async(event,...args)=>{trusted(event);try{return {ok:true,value:await fn(...args)};}catch(error){return {ok:false,message:error.message,status:error.status||0,data:error.data};}});
+  handle('clipboard:write-text',text=>writeClipboardText(clipboard,text));
   handle('backup:begin',(manifest,owner)=>backups.begin(manifest,owner));
   handle('backup:write',(job,key,offset,bytes,owner)=>backups.write(job,key,offset,bytes,owner));
   handle('backup:finish',(job,retention,owner)=>backups.finish(job,retention,owner));

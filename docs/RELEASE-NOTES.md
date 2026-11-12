@@ -1,16 +1,12 @@
-# Neon Trinity Studio 1.2.4
+# Neon Trinity Studio 1.2.5
 
-Songs und Cover lassen sich direkt über das eigene Discord-Konto auf Sleepygram teilen.
+Der Musikbox-Link lässt sich in der Windows-App zuverlässig kopieren.
 
-- Rechtsklick auf einen eigenen Song oder Band-Song → **Auf Sleepygram teilen**.
-- Song, Cover oder eigene Bilddatei auswählen, Beitragstext ergänzen und vor dem Posten prüfen.
-- Direkt posten oder als persönlichen Entwurf in Sleepygram weiterbearbeiten.
-- Noch kein Sleepygram-Profil? Anzeigename und Handle können im Teilen-Dialog angelegt werden.
-- Vor jedem Teilen wird die Discord-Sitzung zusätzlich mit dem aktiven Studio-Konto abgeglichen, bevor Dateien gesendet werden.
-- Empfangene private Freigaben werden nicht zur Weiterveröffentlichung angeboten. Ein Kontowechsel während des Teilens bricht den Vorgang ab.
+- „Link kopieren“ nutzt die native Windows-Zwischenablage über die geschützte Desktop-Brücke.
+- Das Linkfeld wird fokussiert und vollständig markiert; Strg+C kopiert die markierte URL ebenfalls über die Desktop-Brücke.
+- Der Dialog zeigt eine erfolgreiche Kopie erst nach abgeschlossenem Schreibvorgang an.
+- Für die Browser-Ausgabe gibt es einen Ersatzweg innerhalb des geöffneten Dialogs.
 
-Das Studio-Datenformat bleibt unverändert. Bestehende lokale Songs, Playlists, Bilder und Backups werden weiterverwendet; das Teilen kopiert nur die ausgewählte Datei zu Sleepygram.
+Songs, Alben, Playlists, lokale Dateien, Anmeldungen und das Datenformat bleiben unverändert. Bestehende Musikbox-URLs bleiben nutzbar; es ist kein erneuter Upload erforderlich.
 
-Die Website-Anbindung ist bereits im Künstlerbereich über dieselbe Teilen-Funktion erreichbar. Sleepygram und NoSleep Records behalten ihr eigenes Design.
-
-Zum Aktualisieren das Studio schließen und das Setup über die vorhandene Installation installieren. Nicht vorher deinstallieren.
+Zum Aktualisieren Einstellungen → Studio & Updates öffnen oder das neue Setup über die vorhandene Installation installieren. Nicht vorher deinstallieren.
