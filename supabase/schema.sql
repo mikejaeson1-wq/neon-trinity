@@ -47,7 +47,7 @@ create table public.nt_catalog (
  data jsonb not null check(jsonb_typeof(data)='object' and data->>'schema'='2'),
  updated_at timestamptz not null default now()
 );
-insert into public.nt_catalog(id,data) values(1,'{"schema":2,"tracks":[],"albums":[],"playlists":[],"events":[],"assets":[],"publications":[]}');
+insert into public.nt_catalog(id,data) values(1,'{"schema":2,"tracks":[],"eventTracks":[],"albums":[],"playlists":[],"events":[],"assets":[],"publications":[]}');
 alter table public.nt_catalog enable row level security;
 grant select,update on public.nt_catalog to authenticated;
 revoke all on public.nt_catalog from anon;
@@ -216,7 +216,7 @@ create policy nt_profile_images_delete_own on storage.objects for delete to auth
 -- The original band bucket, private local music and Spotify stay separate.
 create table public.nt_musicbox_links (
  id uuid primary key default gen_random_uuid(),
- kind text not null check(kind in ('track','album')),
+ kind text not null check(kind in ('track','album','event-track')),
  record_id text not null check(record_id ~ '^[a-zA-Z0-9-]{1,80}$'),
  source_key text not null check(source_key ~ '^[a-f0-9]{64}$'),
  track_count integer not null check(track_count between 1 and 500),
@@ -235,7 +235,7 @@ create policy nt_musicbox_read on public.nt_musicbox_links for select to authent
  using((select private.nt_is_member()));
 create policy nt_musicbox_create on public.nt_musicbox_links for insert to authenticated
  with check((select private.nt_is_member()) and created_by=(select auth.uid()) and exists(
- select 1 from public.nt_catalog c, jsonb_array_elements(c.data->case nt_musicbox_links.kind when 'track' then 'tracks' else 'albums' end) as entry
+ select 1 from public.nt_catalog c, jsonb_array_elements(coalesce(c.data->case nt_musicbox_links.kind when 'track' then 'tracks' when 'album' then 'albums' when 'event-track' then 'eventTracks' end,'[]'::jsonb)) as entry
  where c.id=1 and entry->>'id'=nt_musicbox_links.record_id));
 create policy nt_musicbox_complete on public.nt_musicbox_links for update to authenticated
  using((select private.nt_is_member())) with check((select private.nt_is_member()));

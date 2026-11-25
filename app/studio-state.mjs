@@ -15,9 +15,9 @@ export function ownerSettings(state,owner){
 export function playbackPrivacy(state,owner,track){
  if(track?.visibility==='shared')return {show:false,listen:false};
  const p=ownerSettings(state,owner).privacy,entry=track&&Object.hasOwn(p.tracks,track.id)?p.tracks[track.id]:{},local=track?.visibility==='local';
- return {show:!!track&&p.discord&&(!local||p.localDiscord)&&entry?.show!==false,listen:!!track&&(!local||p.localListen)&&entry?.listen!==false};
+ return {show:!!track&&p.discord&&(!local||p.localDiscord)&&entry?.show!==false,listen:!!track&&!state.eventTracks?.some(t=>t.id===track.id)&&(!local||p.localListen)&&entry?.listen!==false};
 }
-const kinds=['tracks','albums','playlists','events','localTracks','localPlaylists','privatePlaylists'];
+const kinds=['tracks','eventTracks','albums','playlists','events','localTracks','localPlaylists','privatePlaylists'];
 function view(state,owner){return Object.fromEntries(kinds.map(k=>[k,structuredClone((state[k]||[]).filter(r=>!r.ownerId||r.ownerId===owner))]));}
 export class StudioJournal{
  constructor(){this.baseline=null;this.owner=null;this.suppress=false;}

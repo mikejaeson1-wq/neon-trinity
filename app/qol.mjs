@@ -10,7 +10,7 @@ export function qolSettings(settings){
  q.repeat=repeatMode(q.repeat);q.shuffle=q.shuffle===true;q.volume=clamp(q.volume,0,1,.8);
  q.unmuted=q.unmuted&&typeof q.unmuted==='object'?q.unmuted:{};
  q.views=q.views&&typeof q.views==='object'?q.views:{};
- q.pins=Array.isArray(q.pins)?q.pins.filter(p=>p&&typeof p.route==='string'&&/^(search|overview|library|local|suno|spotify|player|studio|albums|album|playlists|events|team|mobile|visualizer|profiles|live|settings|listen)(\/[-a-zA-Z0-9]+)?$/.test(p.route)).slice(0,30):[];
+ q.pins=Array.isArray(q.pins)?q.pins.filter(p=>p&&typeof p.route==='string'&&/^(search|overview|library|event-music|local|suno|spotify|player|studio|albums|album|playlists|events|team|mobile|visualizer|profiles|live|settings|listen)(\/[-a-zA-Z0-9]+)?$/.test(p.route)).slice(0,30):[];
  q.shortcuts={...DEFAULT_SHORTCUTS,...q.shortcuts};return q;
 }
 export class QueueNavigator{
@@ -55,7 +55,7 @@ export function duplicateGroups(tracks){
 export function filterSongs(tracks,{search='',sort='added',direction='desc'}={}){const term=search.toLocaleLowerCase('de');return tracks.filter(t=>[t.title,t.artist,t.voices,t.genre].join(' ').toLocaleLowerCase('de').includes(term)).sort((a,b)=>{const value=sort==='duration'?(a.duration||0)-(b.duration||0):sort==='added'?String(a.addedAt||'').localeCompare(String(b.addedAt||'')):String(a[sort]||'').localeCompare(String(b[sort]||''),'de',{numeric:true});return value*(direction==='asc'?1:-1);});}
 export function searchCatalog({tracks=[],albums=[],playlists=[],spotify=[]},term,source='all'){
  const query=String(term).trim().toLocaleLowerCase('de');if(!query)return [];
- const rows=[...tracks.map(t=>({...t,kind:'track',source:t.visibility==='local'?'local':'band'})),...albums.map(t=>({...t,kind:'album',source:'band'})),...playlists.map(t=>({...t,kind:'playlist',source:t.visibility==='local'?'local':'band'})),...spotify.map(t=>({...t,title:t.name||t.title,kind:t.kind||'spotify',source:'spotify'}))];
+ const rows=[...tracks.map(t=>({...t,kind:'track',source:t.visibility==='event'?'event':t.visibility==='local'?'local':'band'})),...albums.map(t=>({...t,kind:'album',source:'band'})),...playlists.map(t=>({...t,kind:'playlist',source:t.visibility==='local'?'local':'band'})),...spotify.map(t=>({...t,title:t.name||t.title,kind:t.kind||'spotify',source:'spotify'}))];
  return rows.filter(t=>(source==='all'||source===t.source)&&fuzzyMatch({...t,voices:t.description},query)).slice(0,250);
 }
 export class SleepTimer{

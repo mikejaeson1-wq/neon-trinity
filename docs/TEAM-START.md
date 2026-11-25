@@ -246,3 +246,9 @@ Um einen Song mit Dex, Nix und Jax zu teilen: Privat & lokal öffnen → Rechtsk
 Ordnerimport trennen stoppt die Automatik und entfernt die gespeicherte Ordnerverbindung und Importmarkierungen für dein Konto. Bereits importierte Songs bleiben in Privat & lokal und können dort gelöscht werden. Im Browser-Studio wählst du die von Suno heruntergeladenen MP3s manuell aus; die Rechtsklick-Bandkopie ist auch dort verfügbar.
 
 Der Import verwendet reguläre Suno-Downloads. Die Download-Freigaben und Kontingente deines Suno-Kontos gelten weiterhin. Das Studio umgeht diese nicht und liest keine Suno-Kennwörter, Cookies oder Sitzungsschlüssel aus.
+
+## Event Musik
+
+Öffne im Studio **Event Musik** und wähle **MP3s hochladen**. Alternativ kannst du MP3-Dateien in diesen Bereich ziehen. Die Titel werden mit den freigeschalteten Studio-Konten abgeglichen. Über **⋯** kannst du Titel, Interpret, Genre und Cover bearbeiten.
+
+Wähle bei einem Titel **Musikbox-Link** oder nutze **Rechtsklick → Musikbox-Link kopieren**. Die kopierte direkte MP3-URL kommt in das URL-Feld der Musikbox. Event Musik bleibt außerhalb der Band-Mediathek und der Band-Alben. Bereits erzeugte Links entfernst du bei Bedarf über **Rechtsklick → Geteilte MP3-Links entfernen**.

@@ -85,3 +85,9 @@ Backend: zuerst supabase/listen-private.sql anwenden, danach neon-public mit ind
 ## Musikbox-Zwischenablage in 1.2.5
 
 Der Ergebnisdialog nutzt für Windows eine reine Schreiboperation über die bestehende vertrauensgebundene IPC-Brücke. Sie liest keine Zwischenablage aus und ändert keine Browserberechtigungen. Chromium-/Browser-Zugriffe und ein Dialog-interner Legacy-Kopierweg bleiben Fallbacks. Das URL-Feld erhält Fokus und vollständige Auswahl; Strg+C verwendet bei vorhandener Desktop-Brücke denselben Schreibweg. Erfolgsstatus erscheinen erst nach abgeschlossenem Schreiben. Die Änderung betrifft weder gespeicherte Songs noch vorhandene Musikbox-Exporte.
+
+## Event Musik in 1.3.0
+
+Die eigenständige Sammlung `eventTracks` im gemeinsamen Katalog enthält Event-Musik, ohne Band-Tracks, Alben oder persönliche lokale Sammlungen zu verändern. Ein unverändertes Schema-2-Dokument ohne diese optionale Sammlung bleibt lesbar; ältere Clients lassen die neuen Einträge bei Änderungen ihrer bekannten Sammlungen erhalten. Assets bleiben im privaten `nt-media`-Bucket, bis bewusst ein direkter Musikbox-Export (`event-track`) erzeugt wird. Die additive Migration erweitert ausschließlich den zulässigen Musikbox-Typ und die bestehende Quellenprüfung; Discord-Mitgliedschaft und Eigentümerprüfung bleiben erforderlich.
+
+`supabase/tests/event-music-rls.sql` prüft die Quellen- und Mitgliedsgrenzen in einer zurückgerollten Transaktion. Die Studio-Tests decken Upload, Wiederverwendung, Bearbeitung, Wiedergabe, Menüaktionen, Sicherungen und parallelen Kontenabgleich ab. Event-Dateien werden nicht in den Band-Hörraum aufgenommen; die externe Musikbox verwendet den ausdrücklich angeforderten direkten MP3-Link.

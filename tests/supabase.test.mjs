@@ -85,6 +85,17 @@ test('Supabase-Publikation enthält nur freigegebene Dateien; Zurückziehen erh�
  }finally{dex.close();}
 });
 test('Eine wiederholte Datei-ID wird nur mit identischen Bytes wiederverwendet',async()=>{const f=fixture(),dex=f.client('Dex');try{const blob=new Blob(['music'],{type:'audio/mpeg'});const first=await dex.backend.upload('same-id',blob);assert.equal(first.provider,'supabase');assert.equal(first.sha.length,64);await dex.backend.upload('same-id',blob);await assert.rejects(dex.backend.upload('same-id',new Blob(['different'],{type:'audio/mpeg'})),/andere Daten/);assert.equal(await f.server.media.get(first.path).text(),'music');}finally{dex.close();}});
+test('Event Musik wird zwischen echten Supabase-Clients separat synchronisiert und bleibt bei Änderungen älterer Studios erhalten',async()=>{
+ const f=fixture();delete f.server.data.eventTracks;const dex=f.client('Dex'),nix=f.client('Nix');
+ try{
+  await dex.ready();dex.cache.set('event-audio',new Blob(['event MP3'],{type:'audio/mpeg'}));dex.state.eventTracks.push({id:'event-song',title:'Beachclub Mix',artist:'Guest Artist',blobId:'event-audio',duration:120,visibility:'event'});await dex.team.push(clone(dex.state));await nix.ready();
+  assert.equal(nix.state.eventTracks[0].title,'Beachclub Mix');assert.equal(nix.state.tracks.length,0);assert.equal(await(await nix.team.fetchBlob('event-audio')).text(),'event MP3');
+  // An old client edits a known collection and sends no operation for the new one.
+  await dex.backend.save([{kind:'playlists',id:'old-studio-list',baseRev:null,value:{id:'old-studio-list',title:'Band Setlist',trackIds:[]}}]);await nix.team.pull();assert.equal(nix.state.eventTracks.length,1);assert.equal(nix.state.playlists.length,1);
+  await dex.team.pull();nix.state.eventTracks[0].title='Nix Event Mix';dex.state.events.push({id:'show',title:'Band Show',date:'2026-12-01T20:00',location:'Stage',playlistId:'',notes:''});await Promise.all([nix.team.push(clone(nix.state)),dex.team.push(clone(dex.state))]);assert.equal(f.server.data.eventTracks[0].title,'Nix Event Mix');assert.equal(f.server.data.events[0].id,'show');
+  await dex.backend.publish([],'trinity');assert.equal(f.server.releases.size,0);assert.equal(f.server.data.eventTracks.length,1);await assert.rejects(dex.backend.publishSong('event-song','trinity'),/Bandmediathek/);
+ }finally{dex.close();nix.close();}
+});
 test('Lokale Bearbeitungen während eines laufenden Abgleichs bleiben erhalten',async()=>{const f=fixture(),dex=f.client('Dex');try{await dex.ready();dex.state.playlists.push({id:'first',title:'Erste Setlist',description:'',trackIds:[]});const save=dex.team.push(clone(dex.state));dex.state.playlists.push({id:'later',title:'Während Upload erstellt',description:'',trackIds:[]});await save;assert.ok(dex.state.playlists.some(p=>p.id==='later'));await dex.team.push(clone(dex.state));assert.equal(f.server.data.playlists.length,2);}finally{dex.close();}});
 
 test('Echte Supabase-Clients speichern persönliche Playlists getrennt pro Konto und erkennen Änderungen vom zweiten Gerät',async()=>{

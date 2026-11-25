@@ -20,7 +20,7 @@ export function localPlaylistRecord(record,owner,state){
 export function validateLocalLibrary(state){
   const tracks=state.localTracks??[],playlists=state.localPlaylists??[];
   if(!Array.isArray(tracks)||!Array.isArray(playlists)||tracks.length>10000||playlists.length>2000)throw new Error('Ungültige lokale Mediathek im Backup.');
-  const ids=new Set(state.tracks.map(t=>t.id)),blobs=new Set([...state.tracks.flatMap(t=>[t.blobId,t.coverBlobId]),...state.albums.map(a=>a.coverBlobId)].filter(Boolean)),localBlobs=new Map();
+  const ids=new Set([...state.tracks,...(state.eventTracks||[])].map(t=>t.id)),blobs=new Set([...[...state.tracks,...(state.eventTracks||[])].flatMap(t=>[t.blobId,t.coverBlobId]),...state.albums.map(a=>a.coverBlobId)].filter(Boolean)),localBlobs=new Map();
   for(const track of tracks){
     if(!track||!validId(track.ownerId)||ids.has(track.id)||blobs.has(track.blobId)||track.coverBlobId&&blobs.has(track.coverBlobId))throw new Error('Ungültiger Eigentümer oder Dateiverweis in der privaten Mediathek.');
     validateRecord('tracks',{...track,ownerId:undefined,visibility:undefined});ids.add(track.id);for(const key of [track.blobId,track.coverBlobId].filter(Boolean)){if(localBlobs.has(key)&&localBlobs.get(key)!==track.ownerId)throw new Error('Eine lokale Datei ist mehreren Konten zugeordnet.');localBlobs.set(key,track.ownerId);}
@@ -37,6 +37,6 @@ export function backupForOwner(state,owner){
   return {...structuredClone(state),studioOwners:owner&&state.studioOwners?.[owner]?{[owner]:structuredClone(state.studioOwners[owner])}:{},privatePlaylists:(state.privatePlaylists||[]).filter(p=>owner&&p.ownerId===owner),localTracks:ownLocalTracks(state,owner),localPlaylists:ownLocalPlaylists(state,owner)};
 }
 export function backupBlobIds(state){
- const active=[...state.tracks,...(state.localTracks||[])].flatMap(t=>[t.blobId,t.coverBlobId]).concat(state.albums.map(a=>a.coverBlobId),state.background?.blobId).filter(Boolean);
+ const active=[...state.tracks,...(state.eventTracks||[]),...(state.localTracks||[])].flatMap(t=>[t.blobId,t.coverBlobId]).concat(state.albums.map(a=>a.coverBlobId),state.background?.blobId).filter(Boolean);
  return new Set([...active,...Object.keys(state.studioOwners||{}).flatMap(owner=>[...retainedBlobIds(state,owner)])]);
 }
