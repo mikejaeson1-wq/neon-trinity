@@ -32,12 +32,12 @@ async function requireGuest(req,db,room,id){
  const secret=req.headers.get('x-listen-guest')||'';if(!uuid(id)||!/^[a-f0-9]{64}$/.test(secret))throw fail('Bitte das Mithören erneut starten.',410,{errorCode:'guest-expired'});
  const row=check(await db.from('nt_room_guests').select('*').eq('room_id',room.id).eq('id',id).gt('expires_at',new Date().toISOString()).maybeSingle());if(!row||!equal(row.token_hash,await tokenHash(secret)))throw fail('Bitte das Mithören erneut starten.',410,{errorCode:'guest-expired'});return row;
 }
-async function catalog(db,room){
+async function catalog(db,room,readCatalog){
  const releases=check(await db.from('nt_releases').select('data')),all=releases.flatMap(r=>r.data?.tracks||[]);
- if(!room.local_asset_id){const data=check(await db.from('nt_catalog').select('data').eq('id',1).single()).data;const current=data.tracks.find(t=>t.id===room.track_id);if(current)all.unshift(current);}
+ if(!room.local_asset_id){const data=await readCatalog(db);const current=data.tracks.find(t=>t.id===room.track_id);if(current)all.unshift(current);}
  return [...new Map(all.filter(t=>t&&typeof t.id==='string').map(t=>[t.id,{id:t.id,title:String(t.title||'').slice(0,160),artist:String(t.artist||'Neon Trinity').slice(0,160)}])).values()].slice(0,500);
 }
-export async function roomRoute({req,parts,db,authenticate}){
+export async function roomRoute({req,parts,db,authenticate,readCatalog}){
  if(parts[0]==='listen-preferences'&&parts.length===1){
   const {actor}=await authenticate(true);if(req.method==='GET')return {data:publicSettings(await preferences(db,actor.id))};
   if(req.method!=='PATCH')throw fail('Diese Anfrage wird nicht unterstützt.',405);const input=await body(req),value=await inputSettings(input,await preferences(db,actor.id));
@@ -59,14 +59,14 @@ export async function roomRoute({req,parts,db,authenticate}){
   const accessToken=token(),expiresAt=Date.now()+10*60000;check(await db.from('nt_room_grants').insert({token_hash:await tokenHash(accessToken),room_id:id,revision:s.revision,expires_at:new Date(expiresAt).toISOString()}));return {data:{accessToken,expiresAt}};
  }
  await authorizeRoom(req,db,room,authenticate);
- if(action==='catalog'&&req.method==='GET')return {data:{tracks:await catalog(db,room)}};
+ if(action==='catalog'&&req.method==='GET')return {data:{tracks:await catalog(db,room,readCatalog)}};
  if(action==='guest'&&req.method==='POST'){
   const input=await body(req),name=String(input.name||'Gast').trim();if(!name||name.length>60)throw fail('Bitte einen Anzeigenamen bis 60 Zeichen wählen.');
   if(input.id){const guest=await requireGuest(req,db,room,input.id);check(await db.from('nt_room_guests').update({display_name:name,listening:input.listening===true,updated_at:new Date().toISOString(),expires_at:new Date(Date.now()+45000).toISOString()}).eq('id',guest.id).eq('room_id',id));return {data:{id:guest.id}};}
   const people=await listeners(db,room);if(people.length>=100)throw fail('Dieser Hörraum ist gerade voll.',429);const secret=token(),guest=check(await db.from('nt_room_guests').insert({room_id:id,token_hash:await tokenHash(secret),display_name:name,listening:input.listening===true,updated_at:new Date().toISOString(),expires_at:new Date(Date.now()+45000).toISOString()}).select('id').single());return {data:{id:guest.id,guestToken:secret},status:201};
  }
  if(action==='request'&&req.method==='POST'){
-  const input=await body(req),guest=await requireGuest(req,db,room,input.guestId),tracks=await catalog(db,room);if(!tracks.some(t=>t.id===input.trackId))throw fail('Bitte einen freigegebenen Band-Song auswählen.');
+  const input=await body(req),guest=await requireGuest(req,db,room,input.guestId),tracks=await catalog(db,room,readCatalog);if(!tracks.some(t=>t.id===input.trackId))throw fail('Bitte einen freigegebenen Band-Song auswählen.');
   const pending=check(await db.from('nt_room_requests').select('id').eq('room_id',id).eq('guest_id',guest.id).eq('status','pending').limit(5));if(pending.length>=5)throw fail('Bitte erst die Antwort auf deine bisherigen Songwünsche abwarten.',429);
   check(await db.from('nt_room_requests').insert({room_id:id,guest_id:guest.id,track_id:input.trackId}));return {data:{ok:true},status:201};
  }

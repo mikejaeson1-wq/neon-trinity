@@ -3,16 +3,16 @@ import assert from 'node:assert/strict';
 import {makeHandler,localInput,playerInput,safePublicBase} from '../supabase/functions/neon-public/handler.mjs';
 const dex='b791f08f-56b3-4620-a121-0ad8faf110b3',nix='22222222-2222-4222-8222-222222222222',assetId='11111111-1111-4111-8111-111111111111',roomId='a'.repeat(64);
 function fixture(){
- const now=Date.now(),tables={nt_room_settings:[],nt_listen_preferences:[],nt_room_grants:[],nt_room_guests:[],nt_room_requests:[],nt_rooms:[],nt_listen_assets:[],nt_catalog:[{id:1,data:{tracks:[{id:'band',blobId:'band-blob',title:'Band Song',artist:'Neon Trinity',duration:200}],assets:[{id:'band-blob',provider:'supabase',path:'media/band.mp3'}]}}],nt_config:[{id:1,public_base:'https://band.example'}],nt_releases:[],nt_song_releases:[]},objects=new Map(),signed=[];
+ const now=Date.now(),tables={nt_room_settings:[],nt_listen_preferences:[],nt_room_grants:[],nt_room_guests:[],nt_room_requests:[],nt_rooms:[],nt_listen_assets:[],nt_catalog:[{id:1,revision:0,data:{tracks:[{id:'band',blobId:'band-blob',title:'Band Song',artist:'Neon Trinity',duration:200}],assets:[{id:'band-blob',provider:'supabase',path:'media/band.mp3'}]}}],nt_config:[{id:1,public_base:'https://band.example'}],nt_releases:[],nt_song_releases:[]},objects=new Map(),signed=[],catalogReads=[];
  const asset={id:assetId,owner_id:dex,track_id:'local-one',title:'Private MP3',artist:'Dex',duration:180,byte_size:9,path:dex+'/'+assetId+'.mp3',expires_at:new Date(now+900000).toISOString(),lyrics:'never exposed',cover:'never exposed'};
  const room={id:roomId,host_id:dex,host_alias:'Dex',track_id:'local-one',local_asset_id:assetId,position:40,playing:true,updated_at:new Date(now).toISOString(),expires_at:new Date(now+90000).toISOString()};
  tables.nt_listen_assets.push(asset);tables.nt_rooms.push(room);objects.set('nt-listen/'+asset.path,{name:assetId+'.mp3',metadata:{size:9,mimetype:'audio/mpeg'}});
  function client(admin,actor=dex){
   const visible=(table,row)=>admin||table!=='nt_listen_assets'||row.owner_id===actor;
   const from=table=>{
-   let op='select',payload,filters=[],one=false;
+   let op='select',payload,filters=[],one=false,fields;
    const q={
-    select(){return q;},eq(k,v){filters.push(r=>r[k]===v);return q;},gt(k,v){filters.push(r=>r[k]>v);return q;},lt(k,v){filters.push(r=>r[k]<v);return q;},limit(){return q;},order(){return q;},is(k,v){return q.eq(k,v);},
+    select(columns){fields=columns;if(table==='nt_catalog')catalogReads.push(columns);return q;},contains(k,value){filters.push(r=>value.tracks.every(t=>r[k].tracks.some(x=>x.id===t.id)));return q;},eq(k,v){filters.push(r=>r[k]===v);return q;},gt(k,v){filters.push(r=>r[k]>v);return q;},lt(k,v){filters.push(r=>r[k]<v);return q;},limit(){return q;},order(){return q;},is(k,v){return q.eq(k,v);},
     insert(data){op='insert';payload=data;return q;},upsert(data){op='upsert';payload=data;return q;},update(data){op='update';payload=data;return q;},delete(){op='delete';return q;},
     single(){one=true;return q;},maybeSingle(){one=true;return q;},
     then(resolve,reject){try{
@@ -25,6 +25,7 @@ function fixture(){
      }
      if(op==='update')for(const row of rows)Object.assign(row,payload);
      if(op==='delete'){tables[table]=tables[table].filter(r=>!rows.includes(r));if(table==='nt_listen_assets')tables.nt_rooms=tables.nt_rooms.filter(r=>!rows.some(a=>a.id===r.local_asset_id));}
+     if(table==='nt_catalog'&&fields)rows=rows.map(row=>Object.fromEntries(fields.split(',').map(key=>[key,row[key]])));
      return Promise.resolve({data:structuredClone(one?rows[0]||null:rows),error:null}).then(resolve,reject);
     }catch(e){return Promise.reject(e).then(resolve,reject);}}
    };return q;
@@ -38,7 +39,7 @@ function fixture(){
  }
  const handle=makeHandler((_url,key,options)=>client(key==='service',options?.global?.headers?.Authorization?.slice(7)||dex),key=>key==='SUPABASE_SERVICE_ROLE_KEY'?'service':key==='SUPABASE_URL'?'https://supabase.example':'anon');
  const request=async(path,method='GET',data,actor)=>{const headers=typeof actor==='object'?{...actor}:{};if(typeof actor==='string')headers.Authorization='Bearer '+actor;const response=await handle(new Request('https://supabase.example/functions/v1/neon-public'+path,{method,headers,...(data?{body:JSON.stringify(data)}:{})}));return {status:response.status,data:await response.json()};};
- return {tables,objects,signed,asset,room,request};
+ return {tables,objects,signed,asset,room,request,catalogReads};
 }
 test('Ein Gast hört ausschließlich den aktuellen privaten Song über einen kurzlebigen Link, ohne Zugriff auf Sammlung oder Cover',async()=>{
  const f=fixture(),result=await f.request('/listen/'+roomId);
@@ -110,4 +111,22 @@ test('Öffentlicher Song-Endpunkt signiert ohne Anmeldung ausschließlich die ex
  f.tables.nt_song_releases.push({id:'band',data:{track:{id:'band',title:'Band Song'},assets:[{id:'band-blob',path:'media/band.mp3'}],work:null,theme:'trinity'},asset_paths:['media/band.mp3']});
  const result=await f.request('/song/band');assert.equal(result.status,200);assert.equal(result.data.track.id,'band');assert.deepEqual(f.signed,[{bucket:'nt-media',path:'media/band.mp3',ttl:300}]);assert.equal(result.data.tracks,undefined);assert.ok(!JSON.stringify(result.data).includes('Private MP3'));
  f.tables.nt_song_releases=[];assert.equal((await f.request('/song/band')).status,404);
+});
+
+test('Hörraum prüft beim Host nur die Titel-ID und lädt bei Gästen den Katalog erst nach einer Änderung neu',async()=>{
+ const f=fixture(),path='/listen/'+roomId;
+ f.room.local_asset_id=null;f.room.track_id='band';
+ const player={trackId:'band',playing:true,position:4};
+ for(const position of [4,9,14]){
+  assert.equal((await f.request(path,'PATCH',{...player,position},dex)).status,200);
+ }
+ assert.equal((await f.request(path,'PATCH',{...player,trackId:'unknown'},dex)).status,400);
+ assert.deepEqual(f.catalogReads,['id','id','id','id']);
+ f.catalogReads.length=0;
+ const requests=await Promise.all([f.request(path),f.request(path)]);
+ assert.ok(requests.every(r=>r.data.track.title==='Band Song'));
+ await f.request(path);
+ f.tables.nt_catalog[0].data.tracks[0].title='Rampenlicht';f.tables.nt_catalog[0].revision++;
+ assert.equal((await f.request(path)).data.track.title,'Rampenlicht');
+ assert.deepEqual(f.catalogReads,['data,revision','revision','revision','data,revision']);
 });

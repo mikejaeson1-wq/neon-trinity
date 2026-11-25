@@ -5,6 +5,16 @@ export const emptyCatalog = () => ({schema:2,...Object.fromEntries(COLLECTIONS.m
 const clean = value => Object.fromEntries(Object.entries(value||{}).filter(([k])=>!['_rev','_updatedBy','_updatedAt'].includes(k)));
 function canonical(value) { if(Array.isArray(value))return value.map(canonical);if(value&&typeof value==='object')return Object.fromEntries(Object.keys(value).sort().map(k=>[k,canonical(value[k])]));return value; }
 export const sameRecord = (a,b) => JSON.stringify(canonical(clean(a))) === JSON.stringify(canonical(clean(b)));
+// Check membership and the visible row even when reusing a saved catalog.
+export async function readCatalogRow(client, cached) {
+  const table = () => client.from('nt_catalog');
+  if (cached?.data && Number.isSafeInteger(cached.revision) && cached.revision >= 0) {
+    const probe = await table().select('revision').eq('id', 1).single();
+    if (probe.error) return probe;
+    if (probe.data?.revision === cached.revision) return {data: cached, error: null};
+  }
+  return table().select('data,revision').eq('id', 1).single();
+}
 export function snapshot(state) {
   const privateIds=new Set((state.localTracks||[]).map(t=>t.id));
   const privateBlobs=new Set((state.localTracks||[]).flatMap(t=>[t.blobId,t.coverBlobId]).filter(Boolean));

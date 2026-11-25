@@ -1,17 +1,29 @@
 export const UPLOAD_MESSAGE='Neon Trinity media upload';
-export const COLLECTIONS = ['tracks','albums','playlists','events','assets','publications'];
+export const COLLECTIONS = ['tracks','eventTracks','albums','playlists','events','assets','publications'];
 export const validId = value => typeof value === 'string' && /^[a-zA-Z0-9-]{1,80}$/.test(value);
 export const emptyCatalog = () => ({schema:2,...Object.fromEntries(COLLECTIONS.map(k=>[k,[]]))});
 const clean = value => Object.fromEntries(Object.entries(value||{}).filter(([k])=>!['_rev','_updatedBy','_updatedAt'].includes(k)));
 function canonical(value) { if(Array.isArray(value))return value.map(canonical);if(value&&typeof value==='object')return Object.fromEntries(Object.keys(value).sort().map(k=>[k,canonical(value[k])]));return value; }
 export const sameRecord = (a,b) => JSON.stringify(canonical(clean(a))) === JSON.stringify(canonical(clean(b)));
+// Check membership and the visible row even when reusing a saved catalog.
+export async function readCatalogRow(client, cached) {
+  const table = () => client.from('nt_catalog');
+  if (cached?.data && Number.isSafeInteger(cached.revision) && cached.revision >= 0) {
+    const probe = await table().select('revision').eq('id', 1).single();
+    if (probe.error) return probe;
+    if (probe.data?.revision === cached.revision) return {data: cached, error: null};
+  }
+  return table().select('data,revision').eq('id', 1).single();
+}
 export function snapshot(state) {
   const privateIds=new Set((state.localTracks||[]).map(t=>t.id));
   const privateBlobs=new Set((state.localTracks||[]).flatMap(t=>[t.blobId,t.coverBlobId]).filter(Boolean));
-  const tracks=(state.tracks||[]).filter(t=>!privateIds.has(t.id)&&!privateBlobs.has(t.blobId)&&!t.ownerId&&!['local','private'].includes(t.visibility)).map(t=>{const result={...t};if(privateBlobs.has(result.coverBlobId))delete result.coverBlobId;return result;});
+  const tracks=(state.tracks||[]).filter(t=>!privateIds.has(t.id)&&!privateBlobs.has(t.blobId)&&!t.ownerId&&!['local','private','event'].includes(t.visibility)).map(t=>{const result={...t};if(privateBlobs.has(result.coverBlobId))delete result.coverBlobId;return result;});
+  const bandIds=new Set(tracks.map(t=>t.id));
+  const eventTracks=(state.eventTracks||[]).filter(t=>!privateIds.has(t.id)&&!bandIds.has(t.id)&&!privateBlobs.has(t.blobId)&&!t.ownerId&&!['local','private','shared'].includes(t.visibility)).map(t=>{const result={...t,visibility:'event'};if(privateBlobs.has(result.coverBlobId))delete result.coverBlobId;return result;});
   const allowed=new Set(tracks.map(t=>t.id));
   const groups=list=>(list||[]).map(p=>{const result={...p,trackIds:p.trackIds.filter(id=>allowed.has(id))};if(privateBlobs.has(result.coverBlobId))delete result.coverBlobId;return result;});
-  return {schema:2,tracks:structuredClone(tracks),albums:structuredClone(groups(state.albums)),playlists:structuredClone(groups((state.playlists||[]).filter(p=>!['local','private'].includes(p.visibility)&&!p.ownerId))),events:structuredClone(state.events||[]),assets:structuredClone((state.teamAssets||[]).filter(a=>!privateBlobs.has(a.id))),publications:Object.entries(state.published||{}).map(([id,v])=>({id,...v}))};
+  return {schema:2,tracks:structuredClone(tracks),eventTracks:structuredClone(eventTracks),albums:structuredClone(groups(state.albums)),playlists:structuredClone(groups((state.playlists||[]).filter(p=>!['local','private'].includes(p.visibility)&&!p.ownerId))),events:structuredClone(state.events||[]),assets:structuredClone((state.teamAssets||[]).filter(a=>!privateBlobs.has(a.id))),publications:Object.entries(state.published||{}).map(([id,v])=>({id,...v}))};
 }
 export function diffCatalog(base, desired) {
   const operations=[];
@@ -23,17 +35,19 @@ export function diffCatalog(base, desired) {
 }
 export function overlayOperations(catalog,operations){const result=structuredClone(catalog);for(const op of operations){const list=result[op.kind]||=[];const index=list.findIndex(r=>r.id===op.id);if(op.value===null){if(index>=0)list.splice(index,1);}else if(index>=0)list[index]={...op.value,_rev:list[index]._rev};else list.push(op.value);}return result;}
 export function applyToState(state,catalog) {
-  for(const k of ['tracks','albums','playlists','events'])state[k]=structuredClone(catalog[k]||[]);
+  for(const k of ['tracks','eventTracks','albums','playlists','events'])state[k]=structuredClone(catalog[k]||[]);
   state.teamAssets=structuredClone(catalog.assets||[]);state.published=Object.fromEntries((catalog.publications||[]).map(({id,...v})=>[id,v]));state._sharedBaseline=structuredClone(catalog);return state;
 }
 function text(value,max=1800){if(typeof value!=='string')return '';return value.slice(0,max);}
 export function validateRecord(kind,record) {
   if(!record||!validId(record.id))throw new Error('Ungültiger Datensatz.');
   const r={id:record.id};
-  if(kind==='tracks'){
+  if(kind==='tracks'||kind==='eventTracks'){
     if(record.ownerId||['local','private'].includes(record.visibility))throw new Error('Private lokale Songs dürfen nicht im Bandkatalog gespeichert werden.');
+    if(kind==='tracks'&&record.visibility==='event'||kind==='eventTracks'&&record.visibility==='shared')throw new Error('Event Musik und Band-Songs müssen getrennt bleiben.');
     if(!validId(record.blobId)||!Number.isFinite(record.duration)||record.duration<=0||record.duration>86400)throw new Error('Ungültiger Song.');
     Object.assign(r,{blobId:record.blobId,title:text(record.title,160).trim(),artist:text(record.artist,120),voices:text(record.voices,120),genre:text(record.genre,120),duration:record.duration,size:Number(record.size)||0,digest:text(record.digest,64),addedAt:text(record.addedAt,40)});
+    if(kind==='eventTracks')r.visibility='event';
     if(record.coverBlobId){if(!validId(record.coverBlobId))throw new Error('Ungültiges Cover.');r.coverBlobId=record.coverBlobId;}
   }else if(kind==='albums'||kind==='playlists'){
     if(kind==='playlists'&&(['private','local'].includes(record.visibility)||record.ownerId))throw new Error('Persönliche Playlists dürfen nicht im Bandkatalog gespeichert werden.');
@@ -51,7 +65,7 @@ export function validateRecord(kind,record) {
     }else if(!/^[a-f0-9]{40}$/.test(record.sha||''))throw new Error('Der GitHub-Dateiverweis fehlt.');
     Object.assign(r,{type:record.type,path:record.path,size:record.size,sha:record.sha});
   }else if(kind==='publications'){r.at=text(record.at,40);}else throw new Error('Unbekannte Sammlung.');
-  if(['tracks','albums','playlists','events'].includes(kind)&&!r.title)throw new Error('Der Name darf nicht leer sein.');
+  if(['tracks','eventTracks','albums','playlists','events'].includes(kind)&&!r.title)throw new Error('Der Name darf nicht leer sein.');
   return r;
 }
 export function applyOperations(catalog,operations,actor) {
@@ -65,6 +79,7 @@ export function applyOperations(catalog,operations,actor) {
   const result=structuredClone(catalog);
   for(const op of operations){const list=result[op.kind]||=[];const index=list.findIndex(r=>r.id===op.id);if(op.value===null){if(index>=0)list.splice(index,1);}else{const value={...validateRecord(op.kind,op.value),_rev:crypto.randomUUID(),_updatedBy:actor,_updatedAt:new Date().toISOString()};if(index>=0)list[index]=value;else list.push(value);}}
   const tracks=new Set(result.tracks.map(r=>r.id)),playlists=new Set(result.playlists.map(r=>r.id)),albums=new Set(result.albums.map(r=>r.id));
+  if((result.eventTracks||[]).some(t=>tracks.has(t.id)))throw new Error('Event Musik und Band-Songs müssen getrennte IDs behalten.');
   for(const group of [...result.albums,...result.playlists])group.trackIds=group.trackIds.filter(id=>tracks.has(id));
   for(const event of result.events)if(!playlists.has(event.playlistId))event.playlistId='';
   result.publications=result.publications.filter(p=>albums.has(p.id));return result;

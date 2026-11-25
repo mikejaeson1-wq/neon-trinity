@@ -1,14 +1,20 @@
 import {CLOUD} from './cloud-config.mjs';
+import {readCatalogRow} from './shared.mjs';
 export class MobileLibrary{
   constructor(client){this.client=client;this.owner=null;this.generation=0;this.reset();}
-  reset(){this.tracks=[];this.albums=[];this.playlists=[];this.assets=[];this.publicRows=[];this.signed=new Map();}
+  reset(){this.pendingLoad=null;this.catalogRow=null;this.tracks=[];this.albums=[];this.playlists=[];this.assets=[];this.publicRows=[];this.signed=new Map();}
   setOwner(user){const id=user?.id||null;if(id===this.owner)return;this.owner=id;this.generation++;this.reset();}
   current(generation){if(generation!==this.generation)throw new Error('Das angemeldete Konto hat sich geändert.');}
-  async load(){
-    const generation=this.generation;
+  load(){
+    if(this.pendingLoad)return this.pendingLoad;
+    const task=this.loadCurrent(this.generation).finally(()=>{if(this.pendingLoad===task)this.pendingLoad=null;});
+    this.pendingLoad=task;
+    return task;
+  }
+  async loadCurrent(generation){
     if(!this.owner){const result=await this.client.from('nt_releases').select('id,data').order('updated_at',{ascending:false});this.current(generation);if(result.error)throw result.error;this.publicRows=result.data||[];this.albums=this.publicRows.map(r=>({...r.data.album,id:r.id}));this.tracks=[...new Map(this.publicRows.flatMap(r=>r.data.tracks||[]).map(t=>[t.id,t])).values()];this.assets=[...new Map(this.publicRows.flatMap(r=>r.data.assets||[]).map(a=>[a.id,a])).values()];return;}
-    const [catalog,personal]=await Promise.all([this.client.from('nt_catalog').select('data').eq('id',1).single(),this.client.from('nt_private_playlists').select('id,data').eq('owner_id',this.owner).order('updated_at')]);this.current(generation);if(catalog.error)throw catalog.error;if(personal.error)throw personal.error;
-    const data=catalog.data.data;this.tracks=data.tracks||[];this.albums=data.albums||[];this.assets=data.assets||[];this.playlists=[...(data.playlists||[]),...(personal.data||[]).map(r=>({...r.data,id:r.id,personal:true}))];
+    const [catalog,personal]=await Promise.all([readCatalogRow(this.client,this.catalogRow),this.client.from('nt_private_playlists').select('id,data').eq('owner_id',this.owner).order('updated_at')]);this.current(generation);if(catalog.error)throw catalog.error;if(personal.error)throw personal.error;
+    this.catalogRow=catalog.data;const data=this.catalogRow.data;this.tracks=data.tracks||[];this.albums=data.albums||[];this.assets=data.assets||[];this.playlists=[...(data.playlists||[]),...(personal.data||[]).map(r=>({...r.data,id:r.id,personal:true}))];
   }
   async publicAlbum(id){
     if(this.owner)return;const row=this.publicRows.find(r=>r.id===id);if(!row)throw new Error('Dieses Album wurde nicht veröffentlicht.');const generation=this.generation;

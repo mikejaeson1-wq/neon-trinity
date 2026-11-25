@@ -4,13 +4,13 @@ import {createClient} from '@supabase/supabase-js';
 import {SupabaseBackend} from '../app/cloud.mjs';
 import {TeamClient} from '../app/team.mjs';
 import {emptyCatalog} from '../app/shared.mjs';
-import {newState} from '../app/core.mjs';
+import {newState,validateState} from '../app/core.mjs';
 import {CLOUD} from '../app/cloud-config.mjs';
 globalThis.document={querySelector:()=>null};globalThis.window={};
 test('Ein deaktivierter Discord-Anbieter wird vor dem Desktop-Login verständlich gemeldet',async()=>{let started=false;const oldWindow=globalThis.window;globalThis.window={neonDesktop:{cloudStartLogin:async()=>{started=true;}}};const team=new TeamClient({backend:{info:{},discordAvailable:async()=>false},getState:()=>newState(),setState:()=>{},getBlob:async()=>null,putBlob:async()=>{}});try{await assert.rejects(team.login(),/Discord ist in Supabase noch nicht aktiviert/);assert.equal(started,false);}finally{globalThis.window=oldWindow;}});
 const clone=structuredClone;
 function fixture(){
- const server={work:[{record_kind:'track',record_id:'public',lyrics:'[00:01]Band lyric',credits:'Dex',notes:'secret mix note'},{record_kind:'track',record_id:'draft',lyrics:'secret draft lyric',credits:'Nix'}],data:emptyCatalog(),revision:0,media:new Map(),releases:new Map(),songReleases:new Map(),privatePlaylists:new Map(),casMisses:0};
+ const server={work:[{record_kind:'track',record_id:'public',lyrics:'[00:01]Band lyric',credits:'Dex',notes:'secret mix note'},{record_kind:'track',record_id:'draft',lyrics:'secret draft lyric',credits:'Nix'}],data:emptyCatalog(),revision:0,catalogReads:[],media:new Map(),releases:new Map(),songReleases:new Map(),privatePlaylists:new Map(),casMisses:0};
  const response=data=>new Response(JSON.stringify(data),{status:200,headers:{'Content-Type':'application/json'}});
  async function fetcher(input,init={}){
   const url=new URL(String(input)),method=init.method||'GET',actor=new Headers(init.headers).get('X-Test-Actor');
@@ -18,7 +18,12 @@ function fixture(){
   if(url.pathname.endsWith('/nt_workbench'))return response(url.searchParams.has('record_id')?server.work.find(w=>w.record_id===url.searchParams.get('record_id').slice(3))||null:server.work);
   if(url.pathname.endsWith('/nt_config'))return response({discord_client_id:'123456789012345678',public_base:'https://band.example'});
   if(url.pathname.endsWith('/nt_catalog')){
-   if(method==='GET')return response({data:clone(server.data),revision:server.revision});
+   if(method==='GET'){
+    const fields=url.searchParams.get('select');server.catalogReads.push(fields);
+    if(server.beforeRead)await server.beforeRead(fields);
+    if(server.denyCatalog)return new Response(JSON.stringify({message:'Kein Zugriff'}),{status:403});
+    return response(fields==='revision'?{revision:server.revision}:{data:clone(server.data),revision:server.revision});
+   }
    if(method==='PATCH'){
     await new Promise(resolve=>setTimeout(resolve,1));
     if(url.searchParams.get('revision')!=='eq.'+server.revision){server.casMisses++;return response(null);}
@@ -130,5 +135,50 @@ test('Einzelne HTML-Songfreigaben enthalten nur den ausgewählten Band-Song und 
 test('Einzelnes Album veröffentlichen erhält die bisherigen Fassungen anderer Alben',async()=>{
  const f=fixture(),dex=f.client('Dex');try{await dex.ready();dex.cache.set('mp3',new Blob(['MP3'],{type:'audio/mpeg'}));dex.state.tracks.push({id:'song',blobId:'mp3',title:'Song',artist:'Band',duration:40,size:3});dex.state.albums.push({id:'first',title:'First',trackIds:['song']},{id:'second',title:'Second',trackIds:['song']});await dex.team.push(clone(dex.state));await dex.backend.publish(['first'],'trinity');const original=clone(f.server.releases.get('first'));
  dex.state.albums[0].title='Unpublished new title';await dex.team.push(clone(dex.state));await dex.backend.publish(['first','second'],'trinity','second');assert.deepEqual(f.server.releases.get('first'),original);assert.equal(f.server.releases.get('second').data.album.title,'Second');
+ }finally{dex.close();}
+});
+
+test('Katalog wird beim Start einmal geladen und bei gleicher Revision auch nach Neustart wiederverwendet',async()=>{
+ const {server,client}=fixture(),dex=client('Dex'),restarted=client('Dex'),nix=client('Nix'),older=client('Dex');
+ try{
+  await dex.ready();
+  await Promise.all([dex.team.pull(),dex.team.pull(),dex.team.pull()]);
+  assert.deepEqual(server.catalogReads,['data,revision','revision']);
+  Object.assign(restarted.state,validateState(JSON.parse(JSON.stringify(dex.state))));
+  await restarted.ready();
+  assert.equal(server.catalogReads.at(-1),'revision');
+  assert.equal(restarted.state._sharedRevision,0);
+  Object.assign(nix.state,clone(dex.state));await nix.ready();
+  assert.equal(server.catalogReads.at(-1),'data,revision');
+  Object.assign(older.state,clone(dex.state));delete older.state._sharedRevision;
+  await older.ready();assert.equal(server.catalogReads.at(-1),'data,revision');
+  restarted.state.localTracks.push({id:'local',blobId:'local-file',title:'Mein Song'});
+  restarted.cache.set('local-file',new Blob(['meine MP3']));
+  server.data.events.push({id:'event',title:'Beachclub'});server.revision++;
+  server.catalogReads.length=0;
+  await restarted.team.pull();await restarted.team.pull();
+  assert.deepEqual(server.catalogReads,['revision','data,revision','revision']);
+  assert.equal(restarted.state.events[0].title,'Beachclub');
+  assert.equal(restarted.state.localTracks[0].title,'Mein Song');
+  assert.equal(await (await restarted.team.fetchBlob('local-file')).text(),'meine MP3');
+  server.denyCatalog=true;
+  await assert.rejects(restarted.team.pull(),/Kein Zugriff/);
+  assert.equal(server.catalogReads.at(-1),'revision');
+ }finally{for(const c of [dex,restarted,nix,older])c.close();}
+});
+
+test('Eine lokale Bearbeitung während einer langsamen Katalogabfrage wird mit dem neuen Serverstand zusammengeführt',async()=>{
+ const {server,client}=fixture(),dex=client('Dex');
+ try{
+  await dex.ready();
+  server.data.playlists.push({id:'remote',title:'Set vom zweiten Gerät',trackIds:[]});server.revision++;
+  const entered=Promise.withResolvers(),release=Promise.withResolvers();
+  server.beforeRead=async fields=>{if(fields==='data,revision'){entered.resolve();await release.promise;}};
+  const pulling=dex.team.pull();await entered.promise;
+  dex.state.events.push({id:'local',title:'Neue Show',date:'2026-12-01T20:00',location:'Beachclub',playlistId:'',notes:''});
+  release.resolve();await pulling;
+  assert.equal(dex.state.events[0].id,'local');
+  await dex.team.pull();
+  assert.equal(server.data.events[0].id,'local');assert.equal(dex.state.playlists[0].id,'remote');
  }finally{dex.close();}
 });

@@ -2,7 +2,7 @@ import {ListeningAPI} from './listen-access.mjs';
 import {createClient} from './vendor/supabase.mjs';
 import {THEMES,songLink} from './core.mjs';
 import {CLOUD} from './cloud-config.mjs';
-import {applyOperations,validId} from './shared.mjs';
+import {applyOperations,validId,readCatalogRow} from './shared.mjs';
 import {privateRecord} from './private-playlists.mjs';
 const extensions={'audio/mpeg':'mp3','image/png':'png','image/jpeg':'jpg','image/webp':'webp'};
 export function cloudError(error){const e=new Error(error?.message||'Die Supabase-Anfrage ist fehlgeschlagen.');e.status=Number(error?.status)||0;e.code=error?.code;return e;}
@@ -18,7 +18,7 @@ export class SupabaseBackend{
  async status(){const config=check(await this.client.from('nt_config').select('discord_client_id,public_base,spotify_client_id').eq('id',1).single());this.info={...this.info,discordClientId:config.discord_client_id,spotifyClientId:config.spotify_client_id||'',publicBase:config.public_base||CLOUD.publicBase};return this.info;}
  async discordAvailable(){const response=await fetch(CLOUD.url+'/auth/v1/settings',{headers:{apikey:CLOUD.key},cache:'no-store',signal:AbortSignal.timeout(10000)});if(!response.ok)throw new Error('Die Discord-Einrichtung in Supabase konnte gerade nicht geprüft werden.');const data=await response.json();this.info.discordEnabled=data.external?.discord===true;return this.info.discordEnabled;}
  async identity(){const result=check(await this.client.rpc('nt_identity'));this.actor=result;return result;}
- async catalog(){return check(await this.client.from('nt_catalog').select('data,revision').eq('id',1).single());}
+ async catalog(cached){return check(await readCatalogRow(this.client,cached));}
  async privatePlaylists(){const rows=check(await this.client.from('nt_private_playlists').select('id,owner_id,data,revision').eq('owner_id',this.actor.id).order('updated_at'));return rows.map(row=>({...row.data,id:row.id,visibility:'private',ownerId:row.owner_id,_rev:row.revision}));}
  async savePrivatePlaylist(record){
   const value=privateRecord(record,this.actor?.id),data={id:value.id,title:value.title,description:value.description,trackIds:value.trackIds};
@@ -31,9 +31,9 @@ export class SupabaseBackend{
   return {...row.data,id:row.id,visibility:'private',ownerId:row.owner_id,_rev:row.revision};
  }
  async deletePrivatePlaylist(record){const row=check(await this.client.from('nt_private_playlists').delete().eq('owner_id',this.actor.id).eq('id',record.id).eq('revision',record._rev).select('id').maybeSingle());if(!row)throw new Error('Die persönliche Playlist wurde inzwischen geändert. Bitte erneut abgleichen.');}
- async save(operations){
+ async save(operations,cached){
   for(let attempt=0;attempt<5;attempt++){
-   const row=await this.catalog();let next;
+   const row=await this.catalog(attempt === 0 ? cached : null);let next;
    try{next=applyOperations(row.data,operations,this.actor?.alias||'Bandmitglied');}
    catch(error){if(error.status===409)error.data={catalog:row.data,conflict:error.conflict};throw error;}
    const result=await this.client.from('nt_catalog').update({data:next}).eq('id',1).eq('revision',row.revision).select('data,revision').maybeSingle();
@@ -70,9 +70,9 @@ export class SupabaseBackend{
   if(rows.length)check(await this.client.from('nt_releases').upsert(rows));
   const existing=check(await this.client.from('nt_releases').select('id'));
   const removed=existing.map(r=>r.id).filter(id=>!albumIds.includes(id));if(removed.length)check(await this.client.from('nt_releases').delete().in('id',removed));
-  const current=(await this.catalog()).data,publications=albumIds.map(id=>({id,at:new Date().toISOString()}));
+  const row=await this.catalog(),current=row.data,publications=albumIds.map(id=>({id,at:new Date().toISOString()}));
   const operations=[...publications.map(value=>({kind:'publications',id:value.id,value,baseRev:current.publications.find(p=>p.id===value.id)?._rev||null})),...current.publications.filter(p=>!albumIds.includes(p.id)).map(p=>({kind:'publications',id:p.id,value:null,baseRev:p._rev}))];
-  const saved=operations.length?await this.save(operations):{catalog:current};
+  const saved=operations.length?await this.save(operations,row):{catalog:current,revision:row.revision};
   return {...saved,status:'in Supabase veröffentlicht',url:`${this.info.publicBase}/album.html${albumIds.length?'?id='+encodeURIComponent(albumIds[0]):''}`};
  }
  async publicSong(id){

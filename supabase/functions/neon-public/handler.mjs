@@ -1,3 +1,4 @@
+import {createCatalogReader} from './catalog.mjs';
 import {tvRoute} from './tv.mjs';
 import {roomRoute,authorizeRoom,listeners,installPreferences} from './rooms.mjs';
 const cors={'Access-Control-Allow-Origin':'*','Access-Control-Allow-Headers':'authorization, apikey, content-type, x-client-info, x-listen-ticket, x-listen-guest','Access-Control-Allow-Methods':'GET,POST,PATCH,DELETE,OPTIONS','Cache-Control':'no-store','Content-Type':'application/json'};
@@ -29,6 +30,7 @@ async function cleanupExpired(db,owner){
  const used=new Set(active.map(r=>r.local_asset_id));for(const asset of expired)if(!used.has(asset.id))await removeAsset(db,asset);
 }
 export function makeHandler(createClient,env){
+ const readCatalog=createCatalogReader();
  return async req=>{
   if(req.method==='OPTIONS')return new Response(null,{headers:cors,status:204});
   try{
@@ -55,8 +57,8 @@ export function makeHandler(createClient,env){
      const actorResult=await userDb.rpc('nt_identity');if(actorResult.error||!actorResult.data?.id)throw error('Das Discord-Konto konnte nicht geprüft werden.',403);authenticated={actor:actorResult.data,userDb};}
     if(member&&!authenticated.actor.allowed)throw error('Dieses Discord-Konto ist nicht für die Band freigeschaltet.',403);return authenticated;
    };
-   const tv=await tvRoute({req,parts,db,authenticate});if(tv)return response(tv);
-   const extended=await roomRoute({req,parts,db,authenticate});if(extended)return response(extended.data,extended.status||200);
+   const tv=await tvRoute({req,parts,db,authenticate,readCatalog});if(tv)return response(tv);
+   const extended=await roomRoute({req,parts,db,authenticate,readCatalog});if(extended)return response(extended.data,extended.status||200);
    const mediaRoute=parts[0]==='listen-media';
    if(!['listen','listen-media'].includes(parts[0])||parts.length>2)throw error('Unbekannte Anfrage.',404);
    const id=parts[1];if(id&&!(mediaRoute?uuid(id):roomId(id)))throw error('Ungültiger Hörlink.',404);
@@ -70,7 +72,7 @@ export function makeHandler(createClient,env){
      if(!asset)throw error('Die Freigabe des lokalen Songs ist abgelaufen.',410);
      track={id:'listen-'+asset.id,blobId:'listen-'+asset.id,title:asset.title,artist:asset.artist,duration:asset.duration};path=asset.path;bucket='nt-listen';
     }else{
-     const catalog=check(await db.from('nt_catalog').select('data').eq('id',1).single()).data;
+     const catalog=await readCatalog(db);
      const song=catalog.tracks.find(t=>t.id===room.track_id),asset=catalog.assets.find(a=>a.id===song?.blobId&&a.provider==='supabase');
      if(!song||!asset)throw error('Der aktuelle Song ist nicht mehr verfügbar.',410);
      track={id:song.id,blobId:song.blobId,title:song.title,artist:song.artist,duration:song.duration};path=asset.path;
@@ -117,8 +119,8 @@ export function makeHandler(createClient,env){
     }
     check(await db.from('nt_listen_assets').update({expires_at:new Date(Date.now()+15*60000).toISOString()}).eq('id',asset.id).eq('owner_id',actor.id));
    }else{
-    const catalog=check(await userDb.from('nt_catalog').select('data').eq('id',1).single()).data;
-    if(!catalog.tracks.some(t=>t.id===player.track_id))throw error('Dieser Song ist noch nicht in der gemeinsamen Mediathek.');
+    const match=check(await userDb.from('nt_catalog').select('id').eq('id',1).contains('data',{tracks:[{id:player.track_id}]}).maybeSingle());
+    if(!match)throw error('Dieser Song ist noch nicht in der gemeinsamen Mediathek.');
    }
    if(req.method==='POST'&&!id){
     const config=check(await db.from('nt_config').select('public_base').eq('id',1).single());
